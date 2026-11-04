@@ -115,50 +115,6 @@
 	</section>
 	{% endif %}
 
-	<section class="card">
-		<h2>Medios de pago</h2>
-		{% for medio in medios_pago %}
-		<p>
-			<b>{{ medio.tipo_medio|replace('_', ' ')|title }}</b>
-			{% if medio.entidad %} · {{ medio.entidad }}{% endif %}
-			· {{ medio.titular }}
-			{% if medio.numero_cuenta_enmascarado %} · {{ medio.numero_cuenta_enmascarado }}{% endif %}
-			{% if medio.cci_enmascarado %} · CCI {{ medio.cci_enmascarado }}{% endif %}
-			{% if medio.predeterminado %}
-			<span class="badge">Predeterminado</span>
-			{% else %}
-			<form method="POST" style="display:inline">
-				<input type="hidden" name="action" value="predeterminar_medio_pago">
-				<input type="hidden" name="id_medio_pago" value="{{ medio.id_medio_pago }}">
-				<button type="submit" class="btn">Elegir predeterminado</button>
-			</form>
-			{% endif %}
-		</p>
-		{% else %}
-		<p>No hay medios de pago registrados.</p>
-		{% endfor %}
-		<form method="POST" class="form">
-			<input type="hidden" name="action" value="guardar_medio_pago">
-			<label for="tipo_medio">Método</label>
-			<select id="tipo_medio" name="tipo_medio" required>
-				<option value="TRANSFERENCIA_BANCARIA">Transferencia bancaria</option>
-				<option value="BILLETERA_DIGITAL">Billetera digital</option>
-				<option value="EFECTIVO_PRESENCIAL">Efectivo presencial</option>
-			</select>
-			<label for="titular">Titular</label>
-			<input id="titular" name="titular" maxlength="180" required>
-			<label for="entidad">Banco / billetera</label>
-			<input id="entidad" name="entidad" maxlength="100">
-			<label for="telefono_asociado">Teléfono asociado</label>
-			<input id="telefono_asociado" name="telefono_asociado" maxlength="20">
-			<label for="numero_cuenta_enmascarado">Cuenta enmascarada</label>
-			<input id="numero_cuenta_enmascarado" name="numero_cuenta_enmascarado" maxlength="40" placeholder="****1234">
-			<label for="cci_enmascarado">CCI enmascarado</label>
-			<input id="cci_enmascarado" name="cci_enmascarado" maxlength="40" placeholder="************1234">
-			<label><input type="checkbox" name="predeterminado" value="1" style="width:auto"> Usar como predeterminado</label>
-			<button type="submit" class="btn">Agregar medio de pago</button>
-		</form>
-	</section>
 </main>
 <script src="{{ url_for('static', filename='ubigeos.js') }}" defer></script>
 {% endblock %}

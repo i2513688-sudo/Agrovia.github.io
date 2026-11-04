@@ -1805,111 +1805,6 @@ def index():
     )
 
 
-@app.route("/libro-reclamaciones", methods=["GET", "POST"])
-def libro_reclamaciones():
-    if request.method == "POST":
-        if request.form.get("website", "").strip():
-            abort(400)
-
-        tipo_solicitud = request.form.get("tipo_solicitud", "").strip().upper()
-        tipo_documento = request.form.get("tipo_documento", "").strip().upper()
-        tipo_bien = request.form.get("tipo_bien", "").strip().upper()
-        nombres = request.form.get("nombres", "").strip()
-        numero_documento = request.form.get("numero_documento", "").strip()
-        domicilio = request.form.get("domicilio", "").strip()
-        telefono = request.form.get("telefono", "").strip()
-        correo = request.form.get("correo", "").strip()
-        descripcion = request.form.get("descripcion", "").strip()
-        pedido = request.form.get("pedido", "").strip()
-        monto_raw = request.form.get("monto", "").strip()
-
-        if (
-            tipo_solicitud not in {"RECLAMO", "QUEJA"}
-            or tipo_documento not in {"DNI", "RUC", "CE", "PASAPORTE", "OTRO"}
-            or tipo_bien not in {"PRODUCTO", "SERVICIO"}
-            or not nombres
-            or len(nombres) > 200
-            or not numero_documento
-            or len(numero_documento) > 30
-            or not domicilio
-            or len(domicilio) > 255
-            or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", correo)
-            or len(correo) > 150
-            or not telefono
-            or len(telefono) > 20
-            or not descripcion
-            or len(descripcion) > 5000
-            or not pedido
-            or len(pedido) > 3000
-        ):
-            flash(_("Revisa los datos obligatorios del formulario."), "warning")
-            return render_template("libro_reclamaciones.html")
-
-        try:
-            monto = Decimal(monto_raw) if monto_raw else None
-        except InvalidOperation:
-            monto = None
-            if monto_raw:
-                flash(_("El monto debe ser un número válido."), "warning")
-                return render_template("libro_reclamaciones.html")
-
-        if monto is not None and (not monto.is_finite() or monto < 0):
-            flash(_("El monto debe ser un número válido no negativo."), "warning")
-            return render_template("libro_reclamaciones.html")
-
-        codigo = f"LR-{datetime.now().strftime('%Y%m')}-{secrets.token_hex(4).upper()}"
-        try:
-            execute(
-                """
-                INSERT INTO libro_reclamaciones
-                (
-                    codigo_reclamacion,
-                    tipo_solicitud,
-                    nombres,
-                    tipo_documento,
-                    numero_documento,
-                    domicilio,
-                    telefono,
-                    correo,
-                    tipo_bien,
-                    monto_reclamado,
-                    descripcion,
-                    pedido,
-                    estado
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'PENDIENTE')
-                """,
-                (
-                    codigo,
-                    tipo_solicitud,
-                    nombres,
-                    tipo_documento,
-                    numero_documento,
-                    domicilio,
-                    telefono,
-                    correo,
-                    tipo_bien,
-                    monto,
-                    descripcion,
-                    pedido,
-                )
-            )
-        except MySQLDatabaseError:
-            app.logger.exception("No se pudo registrar la solicitud del libro de reclamaciones.")
-            flash(
-                _("No pudimos registrar tu solicitud. Inténtalo más tarde."),
-                "danger"
-            )
-            return render_template("libro_reclamaciones.html")
-
-        return render_template(
-            "libro_reclamaciones.html",
-            codigo_confirmacion=codigo,
-        )
-
-    return render_template("libro_reclamaciones.html")
-
-
 # ==========================================================
 # LOGIN
 # ==========================================================
@@ -3303,8 +3198,11 @@ def productos():
             WHERE l.estado = 'DISPONIBLE'
               AND pr.estado = 'ACTIVO'
               AND u.estado = 'ACTIVO'
-              AND (%s = '' OR CONCAT_WS(' ', pred.nombre_predio,
-                    ub.departamento, ub.provincia, ub.distrito) LIKE %s)
+              AND (%s = '' OR
+                    CONVERT(CONCAT_WS(' ', pred.nombre_predio, ub.departamento,
+                        ub.provincia, ub.distrito) USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci
+                    LIKE CONVERT(%s USING utf8mb4) COLLATE utf8mb4_unicode_ci)
             GROUP BY s.id_producto
         ) ofertas ON ofertas.id_producto = p.id_producto
         WHERE p.estado = 'ACTIVO'
@@ -3419,8 +3317,11 @@ def lotes():
               OR l.codigo_lote LIKE %s
           )
           AND (%s IS NULL OR p.id_categoria = %s)
-          AND (%s = '' OR CONCAT_WS(' ', pred.nombre_predio,
-                ub.departamento, ub.provincia, ub.distrito) LIKE %s)
+          AND (%s = '' OR
+                CONVERT(CONCAT_WS(' ', pred.nombre_predio, ub.departamento,
+                    ub.provincia, ub.distrito) USING utf8mb4)
+                COLLATE utf8mb4_unicode_ci
+                LIKE CONVERT(%s USING utf8mb4) COLLATE utf8mb4_unicode_ci)
           AND (%s IS NULL OR p.id_producto = %s)
 
         ORDER BY
@@ -10725,6 +10626,10 @@ def cuenta():
     comprador = obtener_comprador_actual()
     if request.method == "POST":
         action = request.form.get("action")
+        if action in {"guardar_medio_pago", "predeterminar_medio_pago"}:
+            flash("Los medios de pago ya no están disponibles en Mi cuenta.", "warning")
+            return redirect(url_for("cuenta"))
+
         conn = get_connection()
         cur = conn.cursor()
         try:
@@ -10881,100 +10786,6 @@ def cuenta():
                 flash("Dirección de entrega guardada.", "success")
                 return redirect(url_for("cuenta"))
 
-            if action == "guardar_medio_pago":
-                tipo_medio = request.form.get("tipo_medio", "")
-                titular = request.form.get("titular", "").strip()
-                numero_cuenta = request.form.get("numero_cuenta_enmascarado", "").strip()
-                cci = request.form.get("cci_enmascarado", "").strip()
-                tipos_medio = {
-                    "TRANSFERENCIA_BANCARIA",
-                    "BILLETERA_DIGITAL",
-                    "EFECTIVO_PRESENCIAL"
-                }
-                if tipo_medio not in tipos_medio or not titular:
-                    conn.rollback()
-                    flash("Selecciona un método válido e indica el titular.", "warning")
-                    return redirect(url_for("cuenta"))
-                patron_enmascarado = r"[*xX\s-]*\d{2,4}"
-                if any(
-                    valor and not re.fullmatch(patron_enmascarado, valor)
-                    for valor in (numero_cuenta, cci)
-                ):
-                    conn.rollback()
-                    flash("Registra solo los últimos cuatro dígitos y enmascara el resto.", "warning")
-                    return redirect(url_for("cuenta"))
-
-                cur.execute(
-                    """
-                    SELECT id_medio_pago
-                    FROM medios_pago_usuario
-                    WHERE id_usuario = %s
-                      AND estado = 'ACTIVO'
-                      AND predeterminado = 1
-                    LIMIT 1
-                    """,
-                    (session["user_id"],)
-                )
-                tiene_predeterminado = cur.fetchone()
-                predeterminado = request.form.get("predeterminado") == "1" or not tiene_predeterminado
-                if predeterminado:
-                    cur.execute(
-                        "UPDATE medios_pago_usuario SET predeterminado = 0 WHERE id_usuario = %s",
-                        (session["user_id"],)
-                    )
-                cur.execute(
-                    """
-                    INSERT INTO medios_pago_usuario
-                    (
-                        id_usuario, tipo_medio, entidad, titular,
-                        telefono_asociado, numero_cuenta_enmascarado,
-                        cci_enmascarado, predeterminado
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        session["user_id"],
-                        tipo_medio,
-                        request.form.get("entidad", "").strip() or None,
-                        titular,
-                        request.form.get("telefono_asociado", "").strip() or None,
-                        numero_cuenta or None,
-                        cci or None,
-                        int(predeterminado)
-                    )
-                )
-                conn.commit()
-                flash("Medio de pago guardado.", "success")
-                return redirect(url_for("cuenta"))
-
-            if action == "predeterminar_medio_pago":
-                id_medio_pago = request.form.get("id_medio_pago", type=int)
-                cur.execute(
-                    """
-                    SELECT id_medio_pago
-                    FROM medios_pago_usuario
-                    WHERE id_medio_pago = %s
-                      AND id_usuario = %s
-                      AND estado = 'ACTIVO'
-                    """,
-                    (id_medio_pago, session["user_id"])
-                )
-                if not cur.fetchone():
-                    conn.rollback()
-                    flash("El medio de pago no existe o no te pertenece.", "warning")
-                    return redirect(url_for("cuenta"))
-                cur.execute(
-                    "UPDATE medios_pago_usuario SET predeterminado = 0 WHERE id_usuario = %s",
-                    (session["user_id"],)
-                )
-                cur.execute(
-                    "UPDATE medios_pago_usuario SET predeterminado = 1 WHERE id_medio_pago = %s",
-                    (id_medio_pago,)
-                )
-                conn.commit()
-                flash("Medio de pago predeterminado actualizado.", "success")
-                return redirect(url_for("cuenta"))
-
             conn.rollback()
             flash("La acción solicitada no está disponible.", "warning")
         except Exception:
@@ -11014,24 +10825,12 @@ def cuenta():
         ORDER BY departamento
         """
     ) if comprador else []
-    medios_pago = query(
-        """
-        SELECT *
-        FROM medios_pago_usuario
-        WHERE id_usuario = %s
-          AND estado = 'ACTIVO'
-        ORDER BY predeterminado DESC, id_medio_pago DESC
-        """,
-        (session["user_id"],)
-    )
-
     return render_template(
         "cuenta.html",
         user=user,
         facturaciones=facturaciones,
         direcciones_entrega=direcciones_entrega,
         departamentos=departamentos,
-        medios_pago=medios_pago,
         es_comprador=bool(comprador)
     )
 

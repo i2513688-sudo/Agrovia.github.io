@@ -139,9 +139,6 @@ msgstr "Home"
 msgid "Productos"
 msgstr "Products"
 
-msgid "Libro de reclamaciones"
-msgstr "Complaints Book"
-
 msgid "Lotes"
 msgstr "Lots"
 
@@ -454,17 +451,11 @@ msgstr "No products are available at this time."
 msgid "Solicitud registrada"
 msgstr "Request submitted"
 
-msgid "Guardamos tu solicitud en el Libro de Reclamaciones."
-msgstr "Your request has been saved in the Complaints Book."
-
 msgid "Código de seguimiento:"
 msgstr "Tracking code:"
 
 msgid "Conserva este código para consultar sobre tu solicitud."
 msgstr "Keep this code to follow up on your request."
-
-msgid "Completa este formulario para registrar un reclamo o una queja. Los campos marcados son obligatorios."
-msgstr "Complete this form to submit a complaint or grievance. Required fields are marked."
 
 msgid "Tipo de solicitud"
 msgstr "Request type"
@@ -490,9 +481,6 @@ msgstr "Product"
 msgid "Servicio"
 msgstr "Service"
 
-msgid "Monto reclamado (opcional)"
-msgstr "Amount (optional)"
-
 msgid "Describe el problema"
 msgstr "Describe the issue"
 
@@ -504,9 +492,6 @@ msgstr "Leave this field empty"
 
 msgid "Tus datos se usarán para gestionar y responder esta solicitud."
 msgstr "Your information will be used to handle and respond to this request."
-
-msgid "Enviar reclamo o queja"
-msgstr "Submit complaint or grievance"
 
 msgid "Revisa los datos obligatorios del formulario."
 msgstr "Check the required form fields."

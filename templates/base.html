@@ -2198,11 +2198,6 @@
                 {{ _('Inicio') }}
             </a>
 
-            <a class="{{ 'active' if request.endpoint == 'libro_reclamaciones' else '' }}" href="{{ url_for('libro_reclamaciones') }}">
-                <i class="fa-solid fa-book-open"></i>
-                {{ _('Libro de reclamaciones') }}
-            </a>
-
             <a class="{{ 'active' if request.endpoint == 'productos' else '' }}" href="{{ url_for('productos') }}">
                 <i class="fa-solid fa-box"></i>
                 {{ _('Productos') }}
@@ -2219,14 +2214,6 @@
             </a>
 
             {% if 'PRODUCTOR' in session_roles or 'COMPRADOR' in session_roles %}
-            <a class="{{ 'active' if request.endpoint == 'beneficios_usuario' else '' }}" href="{{ url_for('beneficios_usuario') }}">
-                <i class="fa-solid fa-gift"></i>
-                {{ _('Beneficios') }}
-            </a>
-            <a class="{{ 'active' if request.endpoint == 'mis_referidos' else '' }}" href="{{ url_for('mis_referidos') }}">
-                <i class="fa-solid fa-user-group"></i>
-                {{ _('Referidos') }}
-            </a>
             {% if 'PRODUCTOR' in session_roles %}
             <a class="{{ 'active' if request.endpoint == 'mis_solicitudes_lote' else '' }}" href="{{ url_for('mis_solicitudes_lote') }}">{{ _('Mis solicitudes') }}</a>
             {% endif %}
@@ -2390,35 +2377,7 @@
                     </a>
                     {% endif %}
 
-                    {% if 'PRECIOS_VER' in session_permissions %}
-                    <a
-                        class="admin-link {{ 'active' if request.endpoint == 'admin_valorizaciones' else '' }}"
-                        href="{{ url_for('admin_valorizaciones') }}"
-                    >
-                        <i class="fa-solid fa-coins"></i>
-                        {{ _('Valorizaciones') }}
-                    </a>
-                    {% endif %}
-
-                    {% if 'PRECIOS_VER' in session_permissions %}
-                    <a
-                        class="admin-link {{ 'active' if request.endpoint == 'admin_precios_mercado' else '' }}"
-                        href="{{ url_for('admin_precios_mercado') }}"
-                    >
-                        <i class="fa-solid fa-chart-column"></i>
-                        {{ _('Precios de mercado') }}
-                    </a>
-                    {% endif %}
-
                     {% if 'PARAMETROS_COMERCIALES_MODIFICAR' in session_permissions %}
-                    <a
-                        class="admin-link {{ 'active' if request.endpoint == 'admin_variedades' else '' }}"
-                        href="{{ url_for('admin_variedades') }}"
-                    >
-                        <i class="fa-solid fa-seedling"></i>
-                        {{ _('Variedades') }}
-                    </a>
-
                     <a
                         class="admin-link {{ 'active' if request.endpoint == 'admin_parametros_agricolas' else '' }}"
                         href="{{ url_for('admin_parametros_agricolas') }}"

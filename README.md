@@ -11,8 +11,6 @@ Para enlazar el comprobante fiscal seleccionado con cada pago en una base existe
 
 Para habilitar el seguimiento logístico en una base existente, importa una sola vez `sql/migracion_seguimiento_logistico.sql` después de crear `transportes`. En una instalación nueva, impórtala también después de `sql/agrovia_v01.sql`.
 
-Para habilitar el Libro de Reclamaciones en una base existente, importa una sola vez `sql/migracion_libro_reclamaciones.sql` desde phpMyAdmin. La tabla también se incluye en `sql/agrovia_v01.sql` para instalaciones nuevas. Las solicitudes se guardan con un código de seguimiento y quedan pendientes de atención.
-
 Para habilitar el precio propuesto por productor en una base existente, importa una sola vez `sql/migracion_cotizacion_productor.sql`. En una instalación nueva la columna ya está incluida en `sql/agrovia_v01.sql`. Los productores pueden registrar un lote con un predio existente o crear uno en el mismo formulario; las ubicaciones nuevas se guardan con coordenadas seleccionadas en Google Maps.
 
 Para habilitar las solicitudes y negociación de cotizaciones entre productores y compradores en una base existente, importa una sola vez `sql/migracion_cotizaciones_comerciales.sql` después de `sql/agrovia_v01.sql`. En una instalación nueva, las tablas ya están incluidas en `sql/agrovia_v01.sql`. El flujo permite buscar lotes y productores, solicitar cotizaciones, intercambiar mensajes y ofertas y confirmar los términos con aceptación de ambas partes; la reserva, logística y pago continúan en el flujo operativo existente.
