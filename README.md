@@ -96,6 +96,8 @@ En las plantillas, marca el texto visible con `{{ _('Texto en español') }}` par
 - Inicio de sesión
 - Dashboard
 - Catálogo de productos
+- Catálogo comercial con filtros por nombre, categoría y ubicación; cada oferta incluye detalle del lote y perfil público del productor
+- Administración de productos del catálogo, publicaciones editoriales y revisión de solicitudes para publicar lotes
 - Predios, direcciones de entrega y direcciones fiscales con selección de ubigeo
 - Lotes publicados
 - Cotizaciones comerciales y mensajería entre productores y compradores

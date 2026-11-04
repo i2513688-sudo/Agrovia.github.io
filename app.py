@@ -3292,12 +3292,17 @@ def productos():
         LEFT JOIN (
             SELECT s.id_producto,
                    COUNT(DISTINCT l.id_lote) AS lotes_disponibles,
-                   MIN(COALESCE(s.precio_propuesto_kg, l.precio_publicado)) AS precio_minimo
+                   MIN(COALESCE(s.precio_propuesto_kg,
+                       NULLIF(l.precio_publicado, 0))) AS precio_minimo
             FROM lotes l
             INNER JOIN solicitudes_lote s ON s.id_solicitud = l.id_solicitud
             INNER JOIN predios pred ON pred.id_predio = s.id_predio
+            INNER JOIN productores pr ON pr.id_productor = s.id_productor
+            INNER JOIN usuarios u ON u.id_usuario = pr.id_usuario
             LEFT JOIN ubigeos ub ON ub.id_ubigeo = pred.id_ubigeo
             WHERE l.estado = 'DISPONIBLE'
+              AND pr.estado = 'ACTIVO'
+              AND u.estado = 'ACTIVO'
               AND (%s = '' OR CONCAT_WS(' ', pred.nombre_predio,
                     ub.departamento, ub.provincia, ub.distrito) LIKE %s)
             GROUP BY s.id_producto
@@ -3357,7 +3362,8 @@ def lotes():
             p.nombre AS producto,
             p.id_producto,
             c.nombre AS categoria,
-            s.precio_propuesto_kg,
+            COALESCE(s.precio_propuesto_kg, NULLIF(l.precio_publicado, 0))
+                AS precio_propuesto_kg,
             s.descripcion AS descripcion_producto,
             pr.id_productor,
             pr.reputacion AS reputacion_productor,
@@ -3404,6 +3410,8 @@ def lotes():
 
         WHERE l.estado = 'DISPONIBLE'
           AND p.estado = 'ACTIVO'
+          AND pr.estado = 'ACTIVO'
+          AND u.estado = 'ACTIVO'
           AND (
               %s = ''
               OR p.nombre LIKE %s
@@ -3450,11 +3458,13 @@ def detalle_lote(id_lote):
     lote = query(
         """
         SELECT l.*, p.id_producto, p.nombre AS producto,
-               p.descripcion AS descripcion_catalogo, c.nombre AS categoria,
-               s.id_solicitud, s.precio_propuesto_kg, s.descripcion,
+               c.nombre AS categoria,
+               s.id_solicitud,
+               COALESCE(s.precio_propuesto_kg, NULLIF(l.precio_publicado, 0))
+                   AS precio_propuesto_kg,
+               COALESCE(s.descripcion, p.descripcion) AS descripcion,
                pr.id_productor, pr.codigo_productor, pr.reputacion,
                pr.estado_verificacion AS verificacion_productor,
-               pred.nombre_predio, pred.referencia,
                ub.departamento, ub.provincia, ub.distrito,
                (
                    SELECT v.estado_cultivo
@@ -3473,7 +3483,10 @@ def detalle_lote(id_lote):
         INNER JOIN usuarios u ON u.id_usuario = pr.id_usuario
         INNER JOIN predios pred ON pred.id_predio = s.id_predio
         LEFT JOIN ubigeos ub ON ub.id_ubigeo = pred.id_ubigeo
-        WHERE l.id_lote = %s AND p.estado = 'ACTIVO'
+        WHERE l.id_lote = %s
+          AND p.estado = 'ACTIVO'
+          AND pr.estado = 'ACTIVO'
+          AND u.estado = 'ACTIVO'
         LIMIT 1
         """,
         (id_lote,),
@@ -3499,7 +3512,9 @@ def perfil_productor(id_productor):
                CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, '')) AS nombre
         FROM productores pr
         INNER JOIN usuarios u ON u.id_usuario = pr.id_usuario
-        WHERE pr.id_productor = %s AND pr.estado = 'ACTIVO'
+        WHERE pr.id_productor = %s
+          AND pr.estado = 'ACTIVO'
+          AND u.estado = 'ACTIVO'
         LIMIT 1
         """,
         (id_productor,),
@@ -3512,7 +3527,9 @@ def perfil_productor(id_productor):
         SELECT l.id_lote, l.codigo_lote, l.produccion_min, l.produccion_max,
                l.fecha_cosecha_inicio, l.fecha_cosecha_fin, l.estado,
                p.id_producto, p.nombre AS producto, c.nombre AS categoria,
-               s.precio_propuesto_kg, pred.nombre_predio,
+               COALESCE(s.precio_propuesto_kg, NULLIF(l.precio_publicado, 0))
+                   AS precio_propuesto_kg,
+               pred.nombre_predio,
                ub.departamento, ub.provincia, ub.distrito
         FROM lotes l
         INNER JOIN solicitudes_lote s ON s.id_solicitud = l.id_solicitud
@@ -3523,6 +3540,14 @@ def perfil_productor(id_productor):
         WHERE s.id_productor = %s
           AND l.estado = 'DISPONIBLE'
           AND p.estado = 'ACTIVO'
+          AND EXISTS (
+              SELECT 1
+              FROM productores pr
+              INNER JOIN usuarios u ON u.id_usuario = pr.id_usuario
+              WHERE pr.id_productor = s.id_productor
+                AND pr.estado = 'ACTIVO'
+                AND u.estado = 'ACTIVO'
+          )
         ORDER BY l.fecha_publicacion DESC, l.id_lote DESC
         """,
         (id_productor,),
@@ -5530,6 +5555,14 @@ def admin_productos():
             return redirect(url_for("admin_productos"))
 
         if id_producto:
+            existente = query(
+                "SELECT id_producto FROM productos WHERE id_producto = %s LIMIT 1",
+                (id_producto,),
+                one=True,
+            )
+            if not existente:
+                flash(_("El producto que intentas actualizar no existe."), "warning")
+                return redirect(url_for("admin_productos"))
             execute(
                 """
                 UPDATE productos

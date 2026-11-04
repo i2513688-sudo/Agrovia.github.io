@@ -32,10 +32,6 @@
             <p>{{ lote.descripcion }}</p>
             {% endif %}
             <p>
-                {{ _('Predio:') }} {{ lote.nombre_predio }}
-                {% if lote.referencia %}<span class="muted"> · {{ lote.referencia }}</span>{% endif %}
-            </p>
-            <p>
                 {{ _('Productor:') }}
                 <a href="{{ url_for('perfil_productor', id_productor=lote.id_productor) }}">
                     {{ lote.productor }}

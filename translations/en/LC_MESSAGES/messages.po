@@ -1113,3 +1113,45 @@ msgstr "Product updated."
 
 msgid "Producto creado."
 msgstr "Product created."
+
+msgid "El producto que intentas actualizar no existe."
+msgstr "The product you are trying to update does not exist."
+
+msgid "VERIFICADO"
+msgstr "Verified"
+
+msgid "OBSERVADO"
+msgstr "Under review"
+
+msgid "ACTIVO"
+msgstr "Active"
+
+msgid "INACTIVO"
+msgstr "Inactive"
+
+msgid "LISTO_COSECHA"
+msgstr "Ready for harvest"
+
+msgid "PROXIMO_COSECHA"
+msgstr "Harvest approaching"
+
+msgid "COSECHADO"
+msgstr "Harvested"
+
+msgid "EN_TRANSPORTE"
+msgstr "In transit"
+
+msgid "ENTREGADO"
+msgstr "Delivered"
+
+msgid "COMPLETADO"
+msgstr "Completed"
+
+msgid "Categoría"
+msgstr "Category"
+
+msgid "Estado"
+msgstr "Status"
+
+msgid "Solicitar cotización"
+msgstr "Request a quote"

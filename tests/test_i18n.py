@@ -86,7 +86,12 @@ class InternationalizationTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Product catalog", page)
-        self.assertIn("Browse agricultural products by category.", page)
+        self.assertIn(
+            "Browse agricultural products and find producers with available lots.",
+            page,
+        )
+        self.assertIn("Product name", page)
+        self.assertIn("Location", page)
 
 
 if __name__ == "__main__":

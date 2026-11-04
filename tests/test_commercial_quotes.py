@@ -134,10 +134,15 @@ class CommercialQuoteTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Browse available products and see who is offering them.", page)
-        self.assertIn("Product, producer, or lot code", page)
+        self.assertIn("Product or producer", page)
+        self.assertIn("Category", page)
+        self.assertIn("Location", page)
         self.assertEqual(
             query.call_args_list[0].args[1],
-            ("potato", "%potato%", "%potato%", "%potato%")
+            (
+                "potato", "%potato%", "%potato%", "%potato%",
+                None, None, "", "%%", None, None,
+            )
         )
 
     @patch("app.query")
