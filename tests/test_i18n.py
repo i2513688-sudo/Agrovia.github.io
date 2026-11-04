@@ -64,6 +64,18 @@ class InternationalizationTests(unittest.TestCase):
         self.assertIn('<html lang="en">', page)
         self.assertIn("Sign in with your email or ID number.", page)
 
+    def test_complaints_book_is_translated(self):
+        with self.client.session_transaction() as user_session:
+            user_session["idioma"] = "en"
+
+        response = self.client.get("/libro-reclamaciones")
+        page = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Complaints Book", page)
+        self.assertIn("Full name", page)
+        self.assertIn("Submit complaint or grievance", page)
+
     @patch("app.query", side_effect=[[], []])
     def test_product_catalog_is_translated(self, query):
         with self.client.session_transaction() as user_session:

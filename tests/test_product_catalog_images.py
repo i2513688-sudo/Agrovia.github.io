@@ -22,6 +22,8 @@ class ProductCatalogImageTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("img/ajo.png", page)
+        self.assertIn('href="/productos#producto-1"', page)
+        self.assertIn("Ver productos", page)
         self.assertNotIn(">Olluco<", page)
         self.assertNotIn("Producto agrícola del piloto", page)
 
@@ -29,12 +31,12 @@ class ProductCatalogImageTests(unittest.TestCase):
         "app.query",
         side_effect=[
             [
-                {"nombre": "Ajo", "categoria": "Hortalizas", "descripcion": "Producto agrícola del piloto"},
-                {"nombre": "Apio", "categoria": "Hortalizas", "descripcion": "Producto agrícola del piloto"},
-                {"nombre": "Col/Repollo", "categoria": "Hortalizas", "descripcion": "Producto agrícola del piloto"},
-                {"nombre": "Lechuga", "categoria": "Hortalizas", "descripcion": "Producto agrícola del piloto"},
-                {"nombre": "Quinua", "categoria": "Granos", "descripcion": "Producto agrícola del piloto"},
-                {"nombre": "Olluco", "categoria": "Tubérculos", "descripcion": "Producto agrícola del piloto"},
+                {"id_producto": 1, "nombre": "Ajo", "categoria": "Hortalizas", "descripcion": "Producto agrícola del piloto"},
+                {"id_producto": 2, "nombre": "Apio", "categoria": "Hortalizas", "descripcion": "Producto agrícola del piloto"},
+                {"id_producto": 3, "nombre": "Col/Repollo", "categoria": "Hortalizas", "descripcion": "Producto agrícola del piloto"},
+                {"id_producto": 4, "nombre": "Lechuga", "categoria": "Hortalizas", "descripcion": "Producto agrícola del piloto"},
+                {"id_producto": 5, "nombre": "Quinua", "categoria": "Granos", "descripcion": "Producto agrícola del piloto"},
+                {"id_producto": 6, "nombre": "Olluco", "categoria": "Tubérculos", "descripcion": "Producto agrícola del piloto"},
             ],
             [{"nombre": "Hortalizas"}, {"nombre": "Granos"}],
         ],
@@ -50,6 +52,7 @@ class ProductCatalogImageTests(unittest.TestCase):
         self.assertNotIn(">Olluco<", page)
         self.assertNotIn("Producto agrícola del piloto", page)
         self.assertEqual(page.count('class="producto-card"'), 5)
+        self.assertIn('id="producto-1"', page)
 
 
 if __name__ == "__main__":

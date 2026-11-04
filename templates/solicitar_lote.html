@@ -1,119 +1,325 @@
 {% extends "base.html" %}
 
+{% block title %}{{ _('Registrar lote') }}{% endblock %}
+
 {% block content %}
-
 <main class="container">
+    <section class="form lot-registration">
+        <h1>{{ _('Registrar lote') }}</h1>
+        <p class="muted">{{ _('Registra el cultivo, el predio y el precio que propones para publicar tu producto.') }}</p>
 
-    <div class="form">
-
-        <h1>Solicitar publicación de lote</h1>
-
-        <p class="muted">
-            Registra la información del cultivo que deseas
-            incorporar al marketplace.
-        </p>
-
-        <form method="POST" enctype="multipart/form-data">
-
-            <label>Producto</label>
-
-            <select name="id_producto" required>
-
-                <option value="">
-                    Seleccionar producto
-                </option>
-
+        <form method="post" enctype="multipart/form-data">
+            <label for="id_producto">{{ _('Producto') }}</label>
+            <select id="id_producto" name="id_producto" required
+                    data-quote-url="{{ url_for('api_cotizacion_producto', id_producto=0) }}">
+                <option value="">{{ _('Seleccionar producto') }}</option>
                 {% for p in productos %}
-
-                <option value="{{ p.id_producto }}">
-                    {{ p.nombre }}
-                </option>
-
+                <option value="{{ p.id_producto }}">{{ p.nombre }}</option>
                 {% endfor %}
-
             </select>
 
-            <label>Predio</label>
+            <section class="quote-panel" aria-live="polite">
+                <h2>{{ _('Cotización del producto') }}</h2>
+                <p id="market-quote">{{ _('Selecciona un producto para consultar la referencia de mercado por kg.') }}</p>
+                <label for="precio_propuesto_kg">{{ _('Tu precio propuesto (S/ por kg)') }}</label>
+                <input id="precio_propuesto_kg" name="precio_propuesto_kg"
+                       type="number" min="0.0001" max="99999999.9999"
+                       step="0.0001" required>
+                <small class="muted">{{ _('La referencia es informativa; tu propuesta será revisada antes de publicar el lote.') }}</small>
+            </section>
 
-            <select name="id_predio" required>
+            <fieldset class="farm-choice">
+                <legend>{{ _('Predio del cultivo') }}</legend>
+                {% if predios %}
+                <label class="choice">
+                    <input type="radio" name="modo_predio" value="existente" checked>
+                    {{ _('Usar un predio registrado') }}
+                </label>
+                <label for="id_predio">{{ _('Seleccionar predio') }}</label>
+                <select id="id_predio" name="id_predio" required>
+                    {% for p in predios %}
+                    <option value="{{ p.id_predio }}">
+                        {{ p.nombre_predio }}{% if p.latitud is not none and p.longitud is not none %} · {{ _('Ubicación en mapa guardada') }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <label class="choice">
+                    <input type="radio" name="modo_predio" value="nuevo">
+                    {{ _('Registrar un predio nuevo aquí') }}
+                </label>
+                {% else %}
+                <input type="hidden" name="modo_predio" value="nuevo">
+                <p class="muted">{{ _('Registra los datos del predio y marca su ubicación en el mapa.') }}</p>
+                {% endif %}
 
-                <option value="">
-                    Seleccionar predio
-                </option>
+                <fieldset id="new-farm-fields" {% if predios %}disabled{% endif %}>
+                    <legend>{{ _('Datos del predio nuevo') }}</legend>
+                    <label for="nombre_predio">{{ _('Nombre del predio') }}</label>
+                    <input id="nombre_predio" name="nombre_predio" maxlength="120"
+                           data-new-required {% if not predios %}required{% endif %}>
 
-                {% for p in predios %}
+                    <label for="referencia_predio">{{ _('Referencia de ubicación (opcional)') }}</label>
+                    <input id="referencia_predio" name="referencia_predio" maxlength="255">
 
-                <option value="{{ p.id_predio }}">
-                    {{ p.nombre_predio }}
-                </option>
+                    <label for="area_total">{{ _('Área total del predio') }}</label>
+                    <div class="farm-area">
+                        <input id="area_total" name="area_total" type="number"
+                               min="0.01" step="0.01" data-new-required
+                               {% if not predios %}required{% endif %}>
+                        <select name="unidad_area" aria-label="{{ _('Unidad del área') }}">
+                            <option value="HECTAREA">{{ _('Hectáreas') }}</option>
+                            <option value="METRO_CUADRADO">{{ _('Metros cuadrados') }}</option>
+                        </select>
+                    </div>
 
-                {% endfor %}
+                    <p class="map-help muted" id="map-help">
+                        {{ _('Haz clic en el mapa o arrastra el marcador para señalar el predio.') }}
+                    </p>
+                    <div id="parcel-map" class="parcel-map" role="application"
+                         aria-label="{{ _('Mapa para seleccionar la ubicación del predio') }}"></div>
+                    <p id="map-status" class="muted" role="status" aria-live="polite"></p>
 
-            </select>
+                    <div class="coordinate-fields">
+                        <label for="latitud">{{ _('Latitud') }}</label>
+                        <input id="latitud" name="latitud" type="number"
+                               min="-90" max="90" step="0.0000001"
+                               data-new-required
+                               {% if not predios %}required{% endif %}>
+                        <label for="longitud">{{ _('Longitud') }}</label>
+                        <input id="longitud" name="longitud" type="number"
+                               min="-180" max="180" step="0.0000001"
+                               data-new-required
+                               {% if not predios %}required{% endif %}>
+                    </div>
+                </fieldset>
+            </fieldset>
 
-            <label>Área cultivada</label>
+            <label for="area_cultivada">{{ _('Área cultivada (hectáreas)') }}</label>
+            <input id="area_cultivada" type="number" step="0.01" min="0.01"
+                   name="area_cultivada" required>
 
-            <input
-                type="number"
-                step="0.01"
-                name="area_cultivada"
-                required
-            >
+            <label for="fecha_siembra">{{ _('Fecha de siembra') }}</label>
+            <input id="fecha_siembra" type="date" name="fecha_siembra">
 
-            <label>Fecha de siembra</label>
+            <label for="fecha_cosecha_estimada_inicio">{{ _('Inicio estimado de cosecha') }}</label>
+            <input id="fecha_cosecha_estimada_inicio" type="date"
+                   name="fecha_cosecha_estimada_inicio">
 
-            <input
-                type="date"
-                name="fecha_siembra"
-            >
+            <label for="fecha_cosecha_estimada_fin">{{ _('Fin estimado de cosecha') }}</label>
+            <input id="fecha_cosecha_estimada_fin" type="date"
+                   name="fecha_cosecha_estimada_fin">
 
-            <label>
-                Inicio estimado de cosecha
-            </label>
+            <label for="imagen">{{ _('Imagen del cultivo o predio') }}</label>
+            <input id="imagen" type="file" name="imagen"
+                   accept="image/jpeg,image/png,image/webp">
 
-            <input
-                type="date"
-                name="fecha_cosecha_estimada_inicio"
-            >
+            <label for="descripcion">{{ _('Descripción') }}</label>
+            <textarea id="descripcion" name="descripcion" rows="5"
+                      placeholder="{{ _('Información adicional del cultivo...') }}"></textarea>
 
-            <label>
-                Fin estimado de cosecha
-            </label>
-
-            <input
-                type="date"
-                name="fecha_cosecha_estimada_fin"
-            >
-
-            <label>Imagen del cultivo o predio</label>
-
-            <input
-                type="file"
-                name="imagen"
-                accept="image/jpeg,image/png,image/webp"
-            >
-
-            <label>Descripción</label>
-
-            <textarea
-                name="descripcion"
-                rows="5"
-                placeholder="Información adicional del cultivo..."
-            ></textarea>
-
-            <br>
-
-            <button
-                class="btn"
-                type="submit"
-            >
-                Enviar solicitud
-            </button>
-
+            <button class="btn" type="submit">{{ _('Enviar solicitud') }}</button>
         </form>
-
-    </div>
-
+    </section>
 </main>
 
+<style>
+    .lot-registration > form > label,
+    #new-farm-fields > label {
+        display: block;
+        margin: 16px 0 6px;
+    }
+
+    .lot-registration input:not([type="radio"]):not([type="file"]),
+    .lot-registration select,
+    .lot-registration textarea {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid #d5dfd6;
+        border-radius: 8px;
+        font: inherit;
+    }
+
+    .quote-panel,
+    .farm-choice {
+        margin: 24px 0;
+        padding: 20px;
+        border: 1px solid #dce8dd;
+        border-radius: 14px;
+    }
+
+    .quote-panel h2 {
+        margin-top: 0;
+        font-size: 1.2rem;
+    }
+
+    .quote-panel small {
+        display: block;
+        margin-top: 8px;
+    }
+
+    .farm-choice legend,
+    #new-farm-fields legend {
+        padding: 0 8px;
+        font-weight: 700;
+    }
+
+    .farm-choice .choice {
+        display: block;
+        margin: 10px 0;
+    }
+
+    .farm-choice .choice input {
+        margin-right: 8px;
+    }
+
+    #new-farm-fields {
+        margin: 18px 0 0;
+        padding: 16px;
+        border: 1px solid #e1e9e2;
+        border-radius: 10px;
+    }
+
+    .farm-area {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(170px, .7fr);
+        gap: 10px;
+    }
+
+    .parcel-map {
+        min-height: 340px;
+        border-radius: 12px;
+        background: #edf3ee;
+    }
+
+    .coordinate-fields {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    @media (max-width: 640px) {
+        .farm-area,
+        .coordinate-fields {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+    (function () {
+        const product = document.getElementById("id_producto");
+        const quoteOutput = document.getElementById("market-quote");
+        const quoteTemplate = product.dataset.quoteUrl;
+        const farmFields = document.getElementById("new-farm-fields");
+        const farmModes = document.querySelectorAll('input[name="modo_predio"][type="radio"]');
+        const latitude = document.getElementById("latitud");
+        const longitude = document.getElementById("longitud");
+        const mapStatus = document.getElementById("map-status");
+        let map;
+        let marker;
+
+        function setCoordinates(lat, lng) {
+            latitude.value = Number(lat).toFixed(7);
+            longitude.value = Number(lng).toFixed(7);
+            mapStatus.textContent = `${latitude.value}, ${longitude.value}`;
+        }
+
+        window.initParcelMap = function () {
+            const center = { lat: -9.19, lng: -75.015 };
+            map = new google.maps.Map(document.getElementById("parcel-map"), {
+                center: center,
+                zoom: 5,
+                mapTypeControl: true,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
+            marker = new google.maps.Marker({ map: map, position: center, draggable: true });
+            marker.setVisible(false);
+            map.addListener("click", function (event) {
+                marker.setPosition(event.latLng);
+                marker.setVisible(true);
+                setCoordinates(event.latLng.lat(), event.latLng.lng());
+            });
+            marker.addListener("dragend", function (event) {
+                setCoordinates(event.latLng.lat(), event.latLng.lng());
+            });
+            mapStatus.textContent = "{{ _('Selecciona un punto en el mapa.') }}";
+        };
+        window.gm_authFailure = function () {
+            mapStatus.textContent = "{{ _('No se pudo cargar Google Maps. Verifica la clave y sus restricciones.') }}";
+        };
+        window.googleMapsLoadFailed = function () {
+            mapStatus.textContent = "{{ _('Google Maps no está disponible. Ingresa las coordenadas del predio manualmente.') }}";
+        };
+
+        if (farmModes.length) {
+            const updateFarmMode = function () {
+                const isNew = document.querySelector('input[name="modo_predio"]:checked').value === "nuevo";
+                farmFields.disabled = !isNew;
+                farmFields.querySelectorAll("[data-new-required]").forEach(function (field) {
+                    field.required = isNew;
+                });
+                document.getElementById("id_predio").required = !isNew;
+            };
+            farmModes.forEach(function (mode) {
+                mode.addEventListener("change", updateFarmMode);
+            });
+            updateFarmMode();
+        }
+
+        latitude.addEventListener("change", function () {
+            if (map && latitude.value && longitude.value) {
+                const point = {
+                    lat: Number(latitude.value),
+                    lng: Number(longitude.value)
+                };
+                map.setCenter(point);
+                map.setZoom(15);
+                marker.setPosition(point);
+                marker.setVisible(true);
+                mapStatus.textContent = `${latitude.value}, ${longitude.value}`;
+            }
+        });
+        longitude.addEventListener("change", function () {
+            latitude.dispatchEvent(new Event("change"));
+        });
+
+        product.addEventListener("change", async function () {
+            if (!product.value) {
+                quoteOutput.textContent = "{{ _('Selecciona un producto para consultar la referencia de mercado por kg.') }}";
+                return;
+            }
+            quoteOutput.textContent = "{{ _('Consultando referencia de mercado...') }}";
+            const selectedProduct = product.value;
+            try {
+                const response = await fetch(quoteTemplate.replace(/0$/, selectedProduct));
+                const data = await response.json();
+                if (product.value !== selectedProduct) {
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error(data.error || "{{ _('No hay una referencia de mercado disponible.') }}");
+                }
+                quoteOutput.textContent =
+                    `{{ _('Referencia de mercado:') }} S/ ${data.precio} / kg · ${data.mercado || data.zona || ""} · {{ _('Fecha:') }} ${data.fecha_precio}`;
+            } catch (error) {
+                quoteOutput.textContent = error.message;
+            }
+        });
+    })();
+</script>
+{% if google_maps_api_key() %}
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key()|urlencode }}&callback=initParcelMap"
+        onerror="googleMapsLoadFailed()">
+</script>
+{% else %}
+<script>
+    document.getElementById("map-status").textContent =
+        "{{ _('Google Maps no está configurado. Ingresa las coordenadas del predio manualmente.') }}";
+</script>
+{% endif %}
 {% endblock %}

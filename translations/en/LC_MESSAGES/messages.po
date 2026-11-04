@@ -58,6 +58,12 @@ msgstr "Agricultural products"
 msgid "Ver todos"
 msgstr "View all"
 
+msgid "Ver productos"
+msgstr "View products"
+
+msgid "Ver producto:"
+msgstr "View product:"
+
 msgid "Producto agrícola disponible para comercialización."
 msgstr "Agricultural product available for sale."
 
@@ -132,6 +138,9 @@ msgstr "Home"
 
 msgid "Productos"
 msgstr "Products"
+
+msgid "Libro de reclamaciones"
+msgstr "Complaints Book"
 
 msgid "Lotes"
 msgstr "Lots"
@@ -441,6 +450,219 @@ msgstr "All"
 
 msgid "No hay productos disponibles por el momento."
 msgstr "No products are available at this time."
+
+msgid "Solicitud registrada"
+msgstr "Request submitted"
+
+msgid "Guardamos tu solicitud en el Libro de Reclamaciones."
+msgstr "Your request has been saved in the Complaints Book."
+
+msgid "Código de seguimiento:"
+msgstr "Tracking code:"
+
+msgid "Conserva este código para consultar sobre tu solicitud."
+msgstr "Keep this code to follow up on your request."
+
+msgid "Completa este formulario para registrar un reclamo o una queja. Los campos marcados son obligatorios."
+msgstr "Complete this form to submit a complaint or grievance. Required fields are marked."
+
+msgid "Tipo de solicitud"
+msgstr "Request type"
+
+msgid "Reclamo"
+msgstr "Complaint"
+
+msgid "Queja"
+msgstr "Grievance"
+
+msgid "Nombres y apellidos"
+msgstr "Full name"
+
+msgid "Domicilio"
+msgstr "Address"
+
+msgid "Bien contratado"
+msgstr "Item or service"
+
+msgid "Producto"
+msgstr "Product"
+
+msgid "Servicio"
+msgstr "Service"
+
+msgid "Monto reclamado (opcional)"
+msgstr "Amount (optional)"
+
+msgid "Describe el problema"
+msgstr "Describe the issue"
+
+msgid "¿Qué solución solicitas?"
+msgstr "What resolution are you requesting?"
+
+msgid "Deja este campo vacío"
+msgstr "Leave this field empty"
+
+msgid "Tus datos se usarán para gestionar y responder esta solicitud."
+msgstr "Your information will be used to handle and respond to this request."
+
+msgid "Enviar reclamo o queja"
+msgstr "Submit complaint or grievance"
+
+msgid "Revisa los datos obligatorios del formulario."
+msgstr "Check the required form fields."
+
+msgid "El monto debe ser un número válido."
+msgstr "Enter a valid amount."
+
+msgid "El monto debe ser un número válido no negativo."
+msgstr "Enter a valid non-negative amount."
+
+msgid "No pudimos registrar tu solicitud. Inténtalo más tarde."
+msgstr "We couldn't save your request. Please try again later."
+
+msgid "Registrar lote"
+msgstr "Register a lot"
+
+msgid "Registra el cultivo, el predio y el precio que propones para publicar tu producto."
+msgstr "Enter your crop, farm, and proposed price to list your product."
+
+msgid "Seleccionar producto"
+msgstr "Select a product"
+
+msgid "Cotización del producto"
+msgstr "Product quote"
+
+msgid "Selecciona un producto para consultar la referencia de mercado por kg."
+msgstr "Select a product to see its market reference per kg."
+
+msgid "Tu precio propuesto (S/ por kg)"
+msgstr "Your proposed price (S/ per kg)"
+
+msgid "La referencia es informativa; tu propuesta será revisada antes de publicar el lote."
+msgstr "The market reference is informational; your proposal will be reviewed before the lot is published."
+
+msgid "Predio del cultivo"
+msgstr "Farm for this crop"
+
+msgid "Usar un predio registrado"
+msgstr "Use a registered farm"
+
+msgid "Ubicación en mapa guardada"
+msgstr "Map location saved"
+
+msgid "Registrar un predio nuevo aquí"
+msgstr "Register a new farm here"
+
+msgid "Registra los datos del predio y marca su ubicación en el mapa."
+msgstr "Enter the farm details and mark its location on the map."
+
+msgid "Datos del predio nuevo"
+msgstr "New farm details"
+
+msgid "Nombre del predio"
+msgstr "Farm name"
+
+msgid "Referencia de ubicación (opcional)"
+msgstr "Location reference (optional)"
+
+msgid "Área total del predio"
+msgstr "Total farm area"
+
+msgid "Unidad del área"
+msgstr "Area unit"
+
+msgid "Hectáreas"
+msgstr "Hectares"
+
+msgid "Metros cuadrados"
+msgstr "Square meters"
+
+msgid "Haz clic en el mapa o arrastra el marcador para señalar el predio."
+msgstr "Click the map or drag the marker to locate your farm."
+
+msgid "Mapa para seleccionar la ubicación del predio"
+msgstr "Map for selecting the farm location"
+
+msgid "Selecciona un punto en el mapa."
+msgstr "Select a point on the map."
+
+msgid "Latitud"
+msgstr "Latitude"
+
+msgid "Longitud"
+msgstr "Longitude"
+
+msgid "Área cultivada (hectáreas)"
+msgstr "Cultivated area (hectares)"
+
+msgid "Fecha de siembra"
+msgstr "Planting date"
+
+msgid "Inicio estimado de cosecha"
+msgstr "Estimated harvest start"
+
+msgid "Fin estimado de cosecha"
+msgstr "Estimated harvest end"
+
+msgid "Imagen del cultivo o predio"
+msgstr "Crop or farm image"
+
+msgid "Descripción"
+msgstr "Description"
+
+msgid "Información adicional del cultivo..."
+msgstr "Additional crop information..."
+
+msgid "Enviar solicitud"
+msgstr "Submit request"
+
+msgid "Consultando referencia de mercado..."
+msgstr "Checking market reference..."
+
+msgid "No hay una referencia de mercado disponible."
+msgstr "No market reference is available."
+
+msgid "Referencia de mercado:"
+msgstr "Market reference:"
+
+msgid "Fecha:"
+msgstr "Date:"
+
+msgid "Google Maps no está configurado. Ingresa las coordenadas del predio manualmente."
+msgstr "Google Maps is not configured. Enter the farm coordinates manually."
+
+msgid "Google Maps no está disponible. Ingresa las coordenadas del predio manualmente."
+msgstr "Google Maps is unavailable. Enter the farm coordinates manually."
+
+msgid "No se pudo cargar Google Maps. Verifica la clave y sus restricciones."
+msgstr "Google Maps couldn't be loaded. Check the API key and its restrictions."
+
+msgid "Indica un área y un precio válidos."
+msgstr "Enter a valid area and price."
+
+msgid "Revisa el producto, el área cultivada y el precio propuesto."
+msgstr "Check the product, cultivated area, and proposed price."
+
+msgid "Selecciona un predio activo de tu cuenta."
+msgstr "Select an active farm from your account."
+
+msgid "El área cultivada no puede superar el área total del predio."
+msgstr "The cultivated area cannot exceed the total farm area."
+
+msgid "Completa el área del predio y selecciona su ubicación en el mapa."
+msgstr "Enter the farm area and select its location on the map."
+
+msgid "Revisa los datos del predio, el área cultivada y la ubicación del mapa."
+msgstr "Check the farm details, cultivated area, and map location."
+
+msgid "No hay una referencia de mercado por kg para este producto."
+msgstr "There is no market reference per kg for this product."
+
+msgid "Precio propuesto (S/ por kg)"
+msgstr "Proposed price (S/ per kg)"
+
+msgid "No indicado"
+msgstr "Not provided"
 
 msgid "Lotes agrícolas"
 msgstr "Agricultural lots"

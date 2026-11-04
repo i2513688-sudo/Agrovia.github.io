@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Libro de reclamaciones') }} | Agrovia{% endblock %}
+
+{% block content %}
+<main class="container">
+    <section class="form">
+        {% if codigo_confirmacion %}
+        <h1>{{ _('Solicitud registrada') }}</h1>
+        <p>{{ _('Guardamos tu solicitud en el Libro de Reclamaciones.') }}</p>
+        <p><strong>{{ _('Código de seguimiento:') }} {{ codigo_confirmacion }}</strong></p>
+        <p>{{ _('Conserva este código para consultar sobre tu solicitud.') }}</p>
+        {% else %}
+        <h1>{{ _('Libro de reclamaciones') }}</h1>
+        <p class="muted">
+            {{ _('Completa este formulario para registrar un reclamo o una queja. Los campos marcados son obligatorios.') }}
+        </p>
+
+        <form method="post">
+            <label for="tipo_solicitud">{{ _('Tipo de solicitud') }}</label>
+            <select id="tipo_solicitud" name="tipo_solicitud" required>
+                <option value="">{{ _('Seleccionar') }}</option>
+                <option value="RECLAMO">{{ _('Reclamo') }}</option>
+                <option value="QUEJA">{{ _('Queja') }}</option>
+            </select>
+
+            <label for="nombres">{{ _('Nombres y apellidos') }}</label>
+            <input id="nombres" name="nombres" maxlength="200" autocomplete="name" required>
+
+            <label for="tipo_documento">{{ _('Tipo de documento') }}</label>
+            <select id="tipo_documento" name="tipo_documento" required>
+                <option value="DNI">{{ _('DNI') }}</option>
+                <option value="RUC">{{ _('RUC') }}</option>
+                <option value="CE">{{ _('Carné de extranjería') }}</option>
+                <option value="PASAPORTE">{{ _('Pasaporte') }}</option>
+                <option value="OTRO">{{ _('Otro') }}</option>
+            </select>
+
+            <label for="numero_documento">{{ _('Número de documento') }}</label>
+            <input id="numero_documento" name="numero_documento" maxlength="30" required>
+
+            <label for="domicilio">{{ _('Domicilio') }}</label>
+            <input id="domicilio" name="domicilio" maxlength="255" autocomplete="street-address" required>
+
+            <label for="telefono">{{ _('Teléfono') }}</label>
+            <input id="telefono" name="telefono" type="tel" maxlength="20" autocomplete="tel" required>
+
+            <label for="correo">{{ _('Correo') }}</label>
+            <input id="correo" name="correo" type="email" maxlength="150" autocomplete="email" required>
+
+            <label for="tipo_bien">{{ _('Bien contratado') }}</label>
+            <select id="tipo_bien" name="tipo_bien" required>
+                <option value="">{{ _('Seleccionar') }}</option>
+                <option value="PRODUCTO">{{ _('Producto') }}</option>
+                <option value="SERVICIO">{{ _('Servicio') }}</option>
+            </select>
+
+            <label for="monto">{{ _('Monto reclamado (opcional)') }}</label>
+            <input id="monto" name="monto" type="number" min="0" step="0.01">
+
+            <label for="descripcion">{{ _('Describe el problema') }}</label>
+            <textarea id="descripcion" name="descripcion" maxlength="5000" rows="5" required></textarea>
+
+            <label for="pedido">{{ _('¿Qué solución solicitas?') }}</label>
+            <textarea id="pedido" name="pedido" maxlength="3000" rows="4" required></textarea>
+
+            <div aria-hidden="true" class="honeypot">
+                <label for="website">{{ _('Deja este campo vacío') }}</label>
+                <input id="website" name="website" tabindex="-1" autocomplete="off">
+            </div>
+
+            <p class="muted">
+                {{ _('Tus datos se usarán para gestionar y responder esta solicitud.') }}
+            </p>
+            <button type="submit" class="btn">{{ _('Enviar reclamo o queja') }}</button>
+        </form>
+        {% endif %}
+    </section>
+</main>
+<style>
+    .honeypot {
+        position: absolute;
+        left: -10000px;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+    }
+
+    .form textarea,
+    .form select {
+        width: 100%;
+        margin: 6px 0 16px;
+        padding: 11px 12px;
+        border: 1px solid #d5dfd6;
+        border-radius: 8px;
+        font: inherit;
+        resize: vertical;
+    }
+</style>
+{% endblock %}

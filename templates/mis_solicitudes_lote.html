@@ -11,6 +11,7 @@
                     <tr>
                         <th>Solicitud</th>
                         <th>Producto / predio</th>
+                        <th>Precio propuesto (S/ por kg)</th>
                         <th>Estado actual</th>
                         <th>Fecha</th>
                         <th>Seguimiento</th>
@@ -21,6 +22,7 @@
                     <tr>
                         <td>{{ item.codigo_solicitud }}</td>
                         <td>{{ item.producto }} · {{ item.nombre_predio }}</td>
+                        <td>{% if item.precio_propuesto_kg %}S/ {{ '%.4f'|format(item.precio_propuesto_kg) }}{% else %}<span class="muted">No indicado</span>{% endif %}</td>
                         <td><span class="badge">{{ item.estado }}</span></td>
                         <td>{{ item.fecha_solicitud }}</td>
                         <td>
@@ -41,7 +43,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5">Todavía no has enviado solicitudes de lote.</td></tr>
+                    <tr><td colspan="6">Todavía no has enviado solicitudes de lote.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

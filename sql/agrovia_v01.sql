@@ -541,6 +541,35 @@ INSERT INTO `incidencias` (`id_incidencia`, `codigo_incidencia`, `id_usuario_rep
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `libro_reclamaciones`
+--
+
+CREATE TABLE `libro_reclamaciones` (
+  `id_reclamacion` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `codigo_reclamacion` varchar(24) NOT NULL,
+  `tipo_solicitud` enum('RECLAMO','QUEJA') NOT NULL,
+  `nombres` varchar(200) NOT NULL,
+  `tipo_documento` enum('DNI','RUC','CE','PASAPORTE','OTRO') NOT NULL,
+  `numero_documento` varchar(30) NOT NULL,
+  `domicilio` varchar(255) NOT NULL,
+  `telefono` varchar(20) NOT NULL,
+  `correo` varchar(150) NOT NULL,
+  `tipo_bien` enum('PRODUCTO','SERVICIO') NOT NULL,
+  `monto_reclamado` decimal(12,2) DEFAULT NULL,
+  `descripcion` text NOT NULL,
+  `pedido` text NOT NULL,
+  `estado` enum('PENDIENTE','EN_ATENCION','ATENDIDO') NOT NULL DEFAULT 'PENDIENTE',
+  `respuesta` text DEFAULT NULL,
+  `fecha_respuesta` datetime DEFAULT NULL,
+  `fecha_registro` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id_reclamacion`),
+  UNIQUE KEY `codigo_reclamacion` (`codigo_reclamacion`),
+  KEY `idx_libro_reclamaciones_fecha_estado` (`fecha_registro`,`estado`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `liquidaciones`
 --
 
@@ -1304,6 +1333,7 @@ CREATE TABLE `solicitudes_lote` (
   `id_variedad` int(10) UNSIGNED DEFAULT NULL,
   `id_campana` int(10) UNSIGNED DEFAULT NULL,
   `area_cultivada` decimal(10,2) NOT NULL,
+  `precio_propuesto_kg` decimal(12,4) DEFAULT NULL,
   `fecha_siembra` date DEFAULT NULL,
   `fecha_cosecha_estimada_inicio` date DEFAULT NULL,
   `fecha_cosecha_estimada_fin` date DEFAULT NULL,

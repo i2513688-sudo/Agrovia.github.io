@@ -193,9 +193,9 @@ class AccessControlTests(unittest.TestCase):
         self.assertEqual(response.location, "/dashboard")
         self.assertEqual(query.call_count, 2)
 
-    @patch("app.query", side_effect=[[
+    @patch("app.query", return_value=[
         {"nombre_rol": "COMPRADOR", "codigo_permiso": None}
-    ], None])
+    ])
     def test_producer_route_requires_active_producer_profile(self, query):
         with self.client.session_transaction() as session:
             session["user_id"] = 7
@@ -204,7 +204,7 @@ class AccessControlTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, "/dashboard")
-        self.assertEqual(query.call_count, 2)
+        query.assert_called_once()
 
     @patch("app.query", return_value=[])
     def test_inactive_session_account_is_logged_out(self, query):

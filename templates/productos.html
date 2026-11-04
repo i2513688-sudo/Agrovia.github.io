@@ -57,6 +57,7 @@
 
     .producto-card {
         overflow: hidden;
+        scroll-margin-top: 100px;
         border: 1px solid #e0e7e1;
         border-radius: 8px;
         background: #fff;
@@ -130,7 +131,7 @@
 
     <section class="catalogo-grid" aria-live="polite">
         {% for p in products %}
-        <article class="producto-card" data-category="{{ p.categoria|lower }}">
+        <article class="producto-card" id="producto-{{ p.id_producto }}" data-category="{{ p.categoria|lower }}">
             <div class="producto-foto">
                 <img src="{{ url_for('static', filename='img/' ~ p.imagen) }}" alt="{{ p.nombre }}" loading="lazy">
             </div>

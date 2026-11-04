@@ -15,6 +15,7 @@
                 <th>Producto</th>
                 <th>Predio</th>
                 <th>Área</th>
+                <th>Precio propuesto (S/ por kg)</th>
                 <th>Imagen</th>
                 <th>Estado</th>
                 <th>Fecha</th>
@@ -28,6 +29,7 @@
                 <td>{{ solicitud.producto }}</td>
                 <td>{{ solicitud.nombre_predio }}</td>
                 <td>{{ solicitud.area_cultivada }} ha</td>
+                <td>{% if solicitud.precio_propuesto_kg %}S/ {{ '%.4f'|format(solicitud.precio_propuesto_kg) }}{% else %}<span class="muted">No indicado</span>{% endif %}</td>
                 <td>
                     {% if solicitud.imagen %}
                         <img src="{{ url_for('static', filename=solicitud.imagen) }}" alt="Imagen de solicitud" style="width: 70px; height: 58px; object-fit: cover; border-radius: 8px;">
@@ -49,7 +51,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="9">No hay solicitudes pendientes.</td>
+                <td colspan="10">No hay solicitudes pendientes.</td>
             </tr>
             {% endfor %}
         </table>

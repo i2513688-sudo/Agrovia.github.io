@@ -1027,6 +1027,24 @@
             border-radius: 22px;
         }
 
+        .home-hero-image img {
+            transition: transform 500ms ease;
+        }
+
+        .home-hero-image:hover img {
+            transform: scale(1.05);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .home-hero-image img {
+                transition: none;
+            }
+
+            .home-hero-image:hover img {
+                transform: none;
+            }
+        }
+
         /* =========================================================
            BOTONES
         ========================================================= */
@@ -1201,6 +1219,27 @@
             border-radius: 16px;
 
             overflow: hidden;
+        }
+
+        .product-card-link {
+            color: inherit;
+            display: block;
+            text-decoration: none;
+            transition: transform 180ms ease, box-shadow 180ms ease;
+        }
+
+        .product-card-link:hover,
+        .product-card-link:focus-visible {
+            box-shadow: 0 12px 26px rgba(30, 59, 38, 0.12);
+            outline: 2px solid #318447;
+            outline-offset: 3px;
+            transform: translateY(-3px);
+        }
+
+        .products-action {
+            display: flex;
+            justify-content: center;
+            margin-top: 24px;
         }
 
         .product-image {
@@ -2159,6 +2198,11 @@
                 {{ _('Inicio') }}
             </a>
 
+            <a class="{{ 'active' if request.endpoint == 'libro_reclamaciones' else '' }}" href="{{ url_for('libro_reclamaciones') }}">
+                <i class="fa-solid fa-book-open"></i>
+                {{ _('Libro de reclamaciones') }}
+            </a>
+
             <a class="{{ 'active' if request.endpoint == 'productos' else '' }}" href="{{ url_for('productos') }}">
                 <i class="fa-solid fa-box"></i>
                 {{ _('Productos') }}
@@ -2392,13 +2436,6 @@
                         {{ _('Configuración logística') }}
                     </a>
 
-                    <a
-                        class="admin-link {{ 'active' if request.endpoint == 'admin_cotizaciones' else '' }}"
-                        href="{{ url_for('admin_cotizaciones') }}"
-                    >
-                        <i class="fa-solid fa-file-contract"></i>
-                        {{ _('Cotizaciones') }}
-                    </a>
                     {% endif %}
 
                     {% if 'PAGOS_VER' in session_permissions %}

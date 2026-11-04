@@ -11,6 +11,10 @@ Para enlazar el comprobante fiscal seleccionado con cada pago en una base existe
 
 Para habilitar el seguimiento logístico en una base existente, importa una sola vez `sql/migracion_seguimiento_logistico.sql` después de crear `transportes`. En una instalación nueva, impórtala también después de `sql/agrovia_v01.sql`.
 
+Para habilitar el Libro de Reclamaciones en una base existente, importa una sola vez `sql/migracion_libro_reclamaciones.sql` desde phpMyAdmin. La tabla también se incluye en `sql/agrovia_v01.sql` para instalaciones nuevas. Las solicitudes se guardan con un código de seguimiento y quedan pendientes de atención.
+
+Para habilitar el precio propuesto por productor en una base existente, importa una sola vez `sql/migracion_cotizacion_productor.sql`. En una instalación nueva la columna ya está incluida en `sql/agrovia_v01.sql`. Los productores pueden registrar un lote con un predio existente o crear uno en el mismo formulario; las ubicaciones nuevas se guardan con coordenadas seleccionadas en Google Maps.
+
 ## 2. Configurar conexión
 Copiar `.env.example` como `.env` y revisar:
 - DB_HOST
@@ -20,7 +24,9 @@ Copiar `.env.example` como `.env` y revisar:
 - DB_PASSWORD
 - SECRET_KEY
 - OSRM_ROUTING_URL (opcional; instancia OSRM confiable para calcular rutas)
+- GOOGLE_MAPS_API_KEY (necesaria para el mapa interactivo al registrar predios)
 
+Activa Maps JavaScript API en Google Cloud, configura restricciones por sitio web para tu dominio y habilita la facturación requerida por Google. Configura la clave en `GOOGLE_MAPS_API_KEY` dentro de `.env`; es una clave pública de navegador, por lo que debe tener restricciones de dominio y de API. Sin clave, el formulario permite ingresar coordenadas manualmente.
 Genera una clave aleatoria para `SECRET_KEY` con `python -c "import secrets; print(secrets.token_hex(32))"` y no la compartas ni la guardes en el repositorio. En producción define además `APP_ENV=production`, configura el servicio detrás de HTTPS y usa `SESSION_COOKIE_SECURE=true`; la aplicación rechaza iniciar en producción sin una clave de al menos 32 caracteres. El modo de depuración está desactivado.
 
 Los formularios POST incluyen protección CSRF automáticamente. Las cookies de sesión usan `HttpOnly` y `SameSite=Lax`. Mantén la clave secreta privada y reiníciala si se filtra.

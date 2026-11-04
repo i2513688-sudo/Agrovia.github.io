@@ -37,7 +37,7 @@ from flask import (
     send_file,
 )
 
-from flask_babel import Babel, gettext
+from flask_babel import Babel, gettext as _
 from jinja2.ext import Extension
 from markupsafe import Markup, escape
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -86,8 +86,11 @@ app.config.update(
     BABEL_TRANSLATION_DIRECTORIES="translations",
 )
 babel = Babel(app, locale_selector=seleccionar_idioma)
-app.jinja_env.globals["_"] = gettext
+app.jinja_env.globals["_"] = _
 app.jinja_env.globals["get_locale"] = seleccionar_idioma
+app.jinja_env.globals["google_maps_api_key"] = lambda: os.getenv(
+    "GOOGLE_MAPS_API_KEY", ""
+).strip()
 
 entorno = os.getenv("APP_ENV", "development").lower()
 secret_key = os.getenv("SECRET_KEY")
@@ -1802,6 +1805,111 @@ def index():
     )
 
 
+@app.route("/libro-reclamaciones", methods=["GET", "POST"])
+def libro_reclamaciones():
+    if request.method == "POST":
+        if request.form.get("website", "").strip():
+            abort(400)
+
+        tipo_solicitud = request.form.get("tipo_solicitud", "").strip().upper()
+        tipo_documento = request.form.get("tipo_documento", "").strip().upper()
+        tipo_bien = request.form.get("tipo_bien", "").strip().upper()
+        nombres = request.form.get("nombres", "").strip()
+        numero_documento = request.form.get("numero_documento", "").strip()
+        domicilio = request.form.get("domicilio", "").strip()
+        telefono = request.form.get("telefono", "").strip()
+        correo = request.form.get("correo", "").strip()
+        descripcion = request.form.get("descripcion", "").strip()
+        pedido = request.form.get("pedido", "").strip()
+        monto_raw = request.form.get("monto", "").strip()
+
+        if (
+            tipo_solicitud not in {"RECLAMO", "QUEJA"}
+            or tipo_documento not in {"DNI", "RUC", "CE", "PASAPORTE", "OTRO"}
+            or tipo_bien not in {"PRODUCTO", "SERVICIO"}
+            or not nombres
+            or len(nombres) > 200
+            or not numero_documento
+            or len(numero_documento) > 30
+            or not domicilio
+            or len(domicilio) > 255
+            or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", correo)
+            or len(correo) > 150
+            or not telefono
+            or len(telefono) > 20
+            or not descripcion
+            or len(descripcion) > 5000
+            or not pedido
+            or len(pedido) > 3000
+        ):
+            flash(_("Revisa los datos obligatorios del formulario."), "warning")
+            return render_template("libro_reclamaciones.html")
+
+        try:
+            monto = Decimal(monto_raw) if monto_raw else None
+        except InvalidOperation:
+            monto = None
+            if monto_raw:
+                flash(_("El monto debe ser un número válido."), "warning")
+                return render_template("libro_reclamaciones.html")
+
+        if monto is not None and (not monto.is_finite() or monto < 0):
+            flash(_("El monto debe ser un número válido no negativo."), "warning")
+            return render_template("libro_reclamaciones.html")
+
+        codigo = f"LR-{datetime.now().strftime('%Y%m')}-{secrets.token_hex(4).upper()}"
+        try:
+            execute(
+                """
+                INSERT INTO libro_reclamaciones
+                (
+                    codigo_reclamacion,
+                    tipo_solicitud,
+                    nombres,
+                    tipo_documento,
+                    numero_documento,
+                    domicilio,
+                    telefono,
+                    correo,
+                    tipo_bien,
+                    monto_reclamado,
+                    descripcion,
+                    pedido,
+                    estado
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'PENDIENTE')
+                """,
+                (
+                    codigo,
+                    tipo_solicitud,
+                    nombres,
+                    tipo_documento,
+                    numero_documento,
+                    domicilio,
+                    telefono,
+                    correo,
+                    tipo_bien,
+                    monto,
+                    descripcion,
+                    pedido,
+                )
+            )
+        except MySQLDatabaseError:
+            app.logger.exception("No se pudo registrar la solicitud del libro de reclamaciones.")
+            flash(
+                _("No pudimos registrar tu solicitud. Inténtalo más tarde."),
+                "danger"
+            )
+            return render_template("libro_reclamaciones.html")
+
+        return render_template(
+            "libro_reclamaciones.html",
+            codigo_confirmacion=codigo,
+        )
+
+    return render_template("libro_reclamaciones.html")
+
+
 # ==========================================================
 # LOGIN
 # ==========================================================
@@ -3363,135 +3471,9 @@ def reservar_lote(id_lote):
 @app.route("/predios", methods=["GET", "POST"])
 @login_required
 def predios():
-
-    productor = query(
-        """
-        SELECT *
-        FROM productores
-        WHERE id_usuario = %s
-        AND estado = 'ACTIVO'
-        """,
-        (session["user_id"],),
-        one=True
-    )
-
-    if not productor:
-
-        flash(
-            "Esta opción solo está disponible para productores.",
-            "warning"
-        )
-
-        return redirect(url_for("dashboard"))
-
-    if request.method == "POST":
-
-        nombre = request.form.get("nombre_predio", "").strip()
-        referencia = request.form.get("referencia", "").strip()
-        unidad = request.form.get("unidad_area", "")
-        id_ubigeo = request.form.get("id_ubigeo", type=int)
-        try:
-            area = Decimal(request.form.get("area_total", ""))
-        except InvalidOperation:
-            area = Decimal("NaN")
-
-        ubigeo = query(
-            """
-            SELECT id_ubigeo
-            FROM ubigeos
-            WHERE id_ubigeo = %s
-              AND estado = 'ACTIVO'
-            LIMIT 1
-            """,
-            (id_ubigeo,),
-            one=True
-        ) if id_ubigeo else None
-
-        if (
-            not nombre or len(nombre) > 120
-            or len(referencia) > 255
-            or not area.is_finite() or area <= 0
-            or unidad not in {"HECTAREA", "METRO_CUADRADO"}
-            or not ubigeo
-        ):
-            flash("Completa los datos del predio e indica un ubigeo válido.", "warning")
-            return redirect(url_for("predios"))
-
-        codigo = generar_codigo(
-            "PRE",
-            "predios",
-            "codigo_predio"
-        )
-
-        execute(
-            """
-            INSERT INTO predios
-            (
-                codigo_predio,
-                id_productor,
-                nombre_predio,
-                referencia,
-                area_total,
-                unidad_area,
-                id_ubigeo,
-                estado_verificacion,
-                estado
-            )
-            VALUES
-            (
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                'PENDIENTE',
-                'ACTIVO'
-            )
-            """,
-            (
-                codigo,
-                productor["id_productor"],
-                nombre,
-                referencia,
-                area,
-                unidad,
-                id_ubigeo
-            )
-        )
-
-        flash(
-            "Predio registrado correctamente.",
-            "success"
-        )
-
-        return redirect(url_for("predios"))
-
-    rows = query(
-        """
-        SELECT p.*, u.departamento, u.provincia, u.distrito
-        FROM predios p
-        LEFT JOIN ubigeos u ON u.id_ubigeo = p.id_ubigeo
-        WHERE p.id_productor = %s
-          AND p.estado = 'ACTIVO'
-        ORDER BY p.fecha_registro DESC
-        """,
-        (productor["id_productor"],)
-    )
-
-    return render_template(
-        "predios.html",
-        predios=rows,
-        departamentos=query(
-            """
-            SELECT DISTINCT departamento
-            FROM ubigeos
-            WHERE estado = 'ACTIVO'
-            ORDER BY departamento
-            """
-        )
-    )
+    if "PRODUCTOR" in session.get("roles", []):
+        return redirect(url_for("solicitar_lote"))
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/api/ubigeos/provincias")
@@ -3578,74 +3560,150 @@ def solicitar_lote():
         (productor["id_productor"],)
     )
 
+    def mostrar_formulario():
+        return render_template(
+            "solicitar_lote.html",
+            productos=productos,
+            predios=predios
+        )
+
     if request.method == "POST":
+        id_producto = request.form.get("id_producto", type=int)
+        modo_predio = request.form.get("modo_predio", "nuevo")
+        id_predio = request.form.get("id_predio", type=int)
+        try:
+            area = Decimal(request.form.get("area_cultivada", ""))
+            precio_propuesto = Decimal(request.form.get("precio_propuesto_kg", ""))
+        except InvalidOperation:
+            flash(_("Indica un área y un precio válidos."), "warning")
+            return mostrar_formulario()
 
-        producto = request.form["id_producto"]
-        predio = request.form["id_predio"]
+        producto = query(
+            """
+            SELECT id_producto
+            FROM productos
+            WHERE id_producto = %s AND estado = 'ACTIVO'
+            LIMIT 1
+            """,
+            (id_producto,),
+            one=True
+        ) if id_producto else None
+        if (
+            not producto
+            or not area.is_finite()
+            or area <= 0
+            or not precio_propuesto.is_finite()
+            or precio_propuesto <= 0
+            or precio_propuesto > Decimal("99999999.9999")
+            or modo_predio not in {"existente", "nuevo"}
+        ):
+            flash(_("Revisa el producto, el área cultivada y el precio propuesto."), "warning")
+            return mostrar_formulario()
 
-        area = request.form["area_cultivada"]
+        if modo_predio == "existente":
+            predio_elegido = query(
+                """
+                SELECT id_predio, area_total, unidad_area
+                FROM predios
+                WHERE id_predio = %s
+                  AND id_productor = %s
+                  AND estado = 'ACTIVO'
+                LIMIT 1
+                """,
+                (id_predio, productor["id_productor"]),
+                one=True
+            ) if id_predio else None
+            if not predio_elegido:
+                flash(_("Selecciona un predio activo de tu cuenta."), "warning")
+                return mostrar_formulario()
+            area_predio_ha = Decimal(str(predio_elegido["area_total"]))
+            if predio_elegido["unidad_area"] == "METRO_CUADRADO":
+                area_predio_ha /= Decimal("10000")
+            if area > area_predio_ha:
+                flash(_("El área cultivada no puede superar el área total del predio."), "warning")
+                return mostrar_formulario()
+            id_predio = predio_elegido["id_predio"]
+        else:
+            nombre_predio = request.form.get("nombre_predio", "").strip()
+            referencia_predio = request.form.get("referencia_predio", "").strip()
+            unidad_area = request.form.get("unidad_area", "")
+            try:
+                area_total = Decimal(request.form.get("area_total", ""))
+                latitud = Decimal(request.form.get("latitud", ""))
+                longitud = Decimal(request.form.get("longitud", ""))
+            except InvalidOperation:
+                flash(_("Completa el área del predio y selecciona su ubicación en el mapa."), "warning")
+                return mostrar_formulario()
 
-        fecha_siembra = request.form["fecha_siembra"] or None
+            area_total_ha = (
+                area_total / Decimal("10000")
+                if unidad_area == "METRO_CUADRADO"
+                else area_total
+            )
+            if (
+                not nombre_predio
+                or len(nombre_predio) > 120
+                or len(referencia_predio) > 255
+                or not area_total.is_finite()
+                or area_total <= 0
+                or unidad_area not in {"HECTAREA", "METRO_CUADRADO"}
+                or area > area_total_ha
+                or not latitud.is_finite()
+                or not longitud.is_finite()
+                or latitud < -90
+                or latitud > 90
+                or longitud < -180
+                or longitud > 180
+            ):
+                flash(_("Revisa los datos del predio, el área cultivada y la ubicación del mapa."), "warning")
+                return mostrar_formulario()
 
-        fecha_inicio = (
-            request.form["fecha_cosecha_estimada_inicio"]
-            or None
-        )
+            codigo_predio = generar_codigo("PRE", "predios", "codigo_predio")
+            id_predio = execute(
+                """
+                INSERT INTO predios
+                (
+                    codigo_predio, id_productor, nombre_predio, referencia,
+                    area_total, unidad_area, latitud, longitud,
+                    estado_verificacion, estado
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'PENDIENTE', 'ACTIVO')
+                """,
+                (
+                    codigo_predio,
+                    productor["id_productor"],
+                    nombre_predio,
+                    referencia_predio or None,
+                    area_total,
+                    unidad_area,
+                    latitud,
+                    longitud,
+                )
+            )
 
-        fecha_fin = (
-            request.form["fecha_cosecha_estimada_fin"]
-            or None
-        )
-
-        descripcion = request.form["descripcion"]
-
-        imagen = request.files.get("imagen")
-
-        codigo = generar_codigo(
-            "SOL",
-            "solicitudes_lote",
-            "codigo_solicitud"
-        )
-
+        codigo = generar_codigo("SOL", "solicitudes_lote", "codigo_solicitud")
         id_solicitud = execute(
             """
             INSERT INTO solicitudes_lote
             (
-                codigo_solicitud,
-                id_productor,
-                id_predio,
-                id_producto,
-                area_cultivada,
-                fecha_siembra,
-                fecha_cosecha_estimada_inicio,
-                fecha_cosecha_estimada_fin,
-                descripcion,
-                estado
+                codigo_solicitud, id_productor, id_predio, id_producto,
+                area_cultivada, precio_propuesto_kg, fecha_siembra,
+                fecha_cosecha_estimada_inicio, fecha_cosecha_estimada_fin,
+                descripcion, estado
             )
-            VALUES
-            (
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                'ENVIADA'
-            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ENVIADA')
             """,
             (
                 codigo,
                 productor["id_productor"],
-                predio,
-                producto,
+                id_predio,
+                id_producto,
                 area,
-                fecha_siembra,
-                fecha_inicio,
-                fecha_fin,
-                descripcion
+                precio_propuesto,
+                request.form.get("fecha_siembra") or None,
+                request.form.get("fecha_cosecha_estimada_inicio") or None,
+                request.form.get("fecha_cosecha_estimada_fin") or None,
+                request.form.get("descripcion", "").strip(),
             )
         )
 
@@ -3665,6 +3723,7 @@ def solicitar_lote():
             "Solicitud enviada por el productor."
         )
 
+        imagen = request.files.get("imagen")
         try:
             if imagen and imagen.filename:
                 guardar_archivo_entidad(
@@ -3684,11 +3743,38 @@ def solicitar_lote():
 
         return redirect(url_for("dashboard"))
 
-    return render_template(
-        "solicitar_lote.html",
-        productos=productos,
-        predios=predios
+    return mostrar_formulario()
+
+
+@app.route("/api/productos/<int:id_producto>/cotizacion")
+@login_required
+def api_cotizacion_producto(id_producto):
+    if "PRODUCTOR" not in session.get("roles", []):
+        abort(403)
+
+    referencia = query(
+        """
+        SELECT precio, unidad, mercado, zona, fuente, fecha_precio
+        FROM precios_mercado
+        WHERE id_producto = %s
+          AND estado = 'ACTIVO'
+          AND unidad = 'KG'
+        ORDER BY fecha_precio DESC, id_precio DESC
+        LIMIT 1
+        """,
+        (id_producto,),
+        one=True
     )
+    if not referencia:
+        return jsonify(error=_("No hay una referencia de mercado por kg para este producto.")), 404
+
+    referencia["precio"] = str(referencia["precio"])
+    referencia["fecha_precio"] = (
+        referencia["fecha_precio"].isoformat()
+        if hasattr(referencia["fecha_precio"], "isoformat")
+        else str(referencia["fecha_precio"])
+    )
+    return jsonify(referencia)
 
 
 @app.route("/mis-solicitudes")
@@ -3712,7 +3798,8 @@ def mis_solicitudes_lote():
     solicitudes = query(
         """
         SELECT s.id_solicitud, s.codigo_solicitud, s.estado,
-               s.fecha_solicitud, s.descripcion, p.nombre AS producto,
+               s.fecha_solicitud, s.descripcion, s.precio_propuesto_kg,
+               p.nombre AS producto,
                pred.nombre_predio
         FROM solicitudes_lote s
         INNER JOIN productos p ON p.id_producto = s.id_producto
@@ -3773,6 +3860,7 @@ def admin_solicitudes_lote():
             s.fecha_siembra,
             s.fecha_cosecha_estimada_inicio,
             s.fecha_cosecha_estimada_fin,
+            s.precio_propuesto_kg,
             s.descripcion,
             s.estado,
             s.fecha_solicitud,
@@ -5524,130 +5612,7 @@ def mis_referidos():
 @app.route("/admin/cotizaciones")
 @login_required
 def admin_cotizaciones():
-
-    if not tiene_permiso("TRANSPORTE_ASIGNAR"):
-
-        flash(
-            "Esta sección es solo para administradores.",
-            "warning"
-        )
-
-        return redirect(url_for("dashboard"))
-
-    cotizaciones = query(
-        """
-        SELECT
-            c.id_cotizacion_operacion,
-            c.codigo_cotizacion,
-            c.valor_produccion,
-            c.costo_base_flete,
-            c.precio_flete_cliente,
-            c.total_operacion,
-            c.estado,
-            c.fecha_calculo,
-            c.fecha_vencimiento,
-            (
-                SELECT cl.distancia_km
-                FROM cotizaciones_logisticas cl
-                WHERE cl.id_cotizacion_operacion = c.id_cotizacion_operacion
-                ORDER BY cl.id_cotizacion DESC
-                LIMIT 1
-            ) AS distancia_km,
-            (
-                SELECT cl.peso_kg
-                FROM cotizaciones_logisticas cl
-                WHERE cl.id_cotizacion_operacion = c.id_cotizacion_operacion
-                ORDER BY cl.id_cotizacion DESC
-                LIMIT 1
-            ) AS peso_logistico_kg,
-            (
-                SELECT cl.tipo_vehiculo
-                FROM cotizaciones_logisticas cl
-                WHERE cl.id_cotizacion_operacion = c.id_cotizacion_operacion
-                ORDER BY cl.id_cotizacion DESC
-                LIMIT 1
-            ) AS tipo_vehiculo_logistico,
-            CONCAT(
-                uc.nombres,
-                ' ',
-                COALESCE(uc.apellido_paterno, '')
-            ) AS comprador,
-            p.nombre AS producto,
-            CONCAT(
-                up.nombres,
-                ' ',
-                COALESCE(up.apellido_paterno, '')
-            ) AS productor,
-            l.codigo_lote,
-            (
-                SELECT v.produccion_min_estimada
-                FROM verificaciones v
-                WHERE v.id_solicitud = l.id_solicitud
-                  AND v.resultado = 'APROBADO'
-                  AND v.estado = 'COMPLETADA'
-                  AND v.produccion_min_estimada > 0
-                  AND v.produccion_max_estimada >= v.produccion_min_estimada
-                ORDER BY v.fecha_realizada DESC, v.id_verificacion DESC
-                LIMIT 1
-            ) AS produccion_min_kg,
-            (
-                SELECT v.produccion_max_estimada
-                FROM verificaciones v
-                WHERE v.id_solicitud = l.id_solicitud
-                  AND v.resultado = 'APROBADO'
-                  AND v.estado = 'COMPLETADA'
-                  AND v.produccion_min_estimada > 0
-                  AND v.produccion_max_estimada >= v.produccion_min_estimada
-                ORDER BY v.fecha_realizada DESC, v.id_verificacion DESC
-                LIMIT 1
-            ) AS produccion_max_kg,
-            de.nombre_referencia AS referencia_entrega,
-            de.direccion AS direccion_entrega,
-            ud.departamento AS departamento_entrega,
-            ud.provincia AS provincia_entrega,
-            ud.distrito AS distrito_entrega
-
-        FROM cotizaciones_operacion c
-
-        INNER JOIN lotes l
-            ON l.id_lote = c.id_lote
-
-        LEFT JOIN direcciones_entrega de
-            ON de.id_direccion = c.id_direccion_entrega
-
-        LEFT JOIN ubigeos ud
-            ON ud.id_ubigeo = de.id_ubigeo
-
-        INNER JOIN solicitudes_lote s
-            ON s.id_solicitud = l.id_solicitud
-
-        INNER JOIN productos p
-            ON p.id_producto = s.id_producto
-
-        INNER JOIN productores pr
-            ON pr.id_productor = s.id_productor
-
-        INNER JOIN usuarios up
-            ON up.id_usuario = pr.id_usuario
-
-        INNER JOIN compradores co
-            ON co.id_comprador = c.id_comprador
-
-        INNER JOIN usuarios uc
-            ON uc.id_usuario = co.id_usuario
-
-        ORDER BY c.fecha_calculo DESC
-        """
-    )
-
-    tipos_vehiculo = query(
-        "SELECT * FROM vw_vehiculos_logistica ORDER BY capacidad_util_kg"
-    )
-    return render_template(
-        "admin_cotizaciones.html",
-        cotizaciones=cotizaciones,
-        tipos_vehiculo=tipos_vehiculo
-    )
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/admin/cotizaciones/<int:id_cotizacion>/aceptar", methods=["POST"])
