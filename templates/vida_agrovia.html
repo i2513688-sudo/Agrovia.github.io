@@ -334,9 +334,23 @@
     .charla-agrovia-imagen {
         display: block;
         width: 100%;
-        max-height: 320px;
-        object-fit: cover;
+        height: 100%;
+        object-fit: contain;
         border-radius: 8px;
+    }
+
+    .charla-agrovia-marco {
+        width: min(100%, 980px);
+        aspect-ratio: 1613 / 600;
+        margin: 14px auto 0;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #edf4ed;
+    }
+
+    .charla-agrovia-publicacion .btn-calendario {
+        width: min(100%, 980px);
+        margin: 10px auto 0;
     }
 
     @media (max-width: 850px) {
@@ -594,13 +608,15 @@
         <h2>Publicaciones de Agrovia</h2>
         {% for publicacion in publicaciones %}
         {% set texto_publicacion = (publicacion.titulo ~ ' ' ~ publicacion.contenido)|lower %}
-        <article style="padding: 14px 0; border-bottom: 1px solid #ddd;">
+        <article class="charla-agrovia-publicacion" style="padding: 14px 0; border-bottom: 1px solid #ddd;">
             {% if 'charla' in texto_publicacion and 'agrovia' in texto_publicacion %}
-            <a href="https://www.facebook.com/share/p/1FVxmshvxB/" target="_blank" rel="noopener noreferrer">
-                <img class="charla-agrovia-imagen"
-                     src="{{ url_for('static', filename='img/charla_agrovia.jpg') }}"
-                     alt="Charla informativa de Agrovia">
-            </a>
+            <div class="charla-agrovia-marco">
+                <a href="https://www.facebook.com/share/p/1FVxmshvxB/" target="_blank" rel="noopener noreferrer">
+                    <img class="charla-agrovia-imagen"
+                         src="{{ url_for('static', filename='img/charla_agrovia.jpg') }}"
+                         alt="Charla informativa de Agrovia">
+                </a>
+            </div>
             <a class="btn-calendario"
                href="https://www.facebook.com/share/p/1FVxmshvxB/"
                target="_blank"

@@ -75,6 +75,11 @@ class VidaAgroviaTests(unittest.TestCase):
         self.assertIn('href="https://www.facebook.com/share/p/1FVxmshvxB/"', content)
         self.assertIn("Ver charla de Agrovia en Facebook", content)
         self.assertEqual(content.count("Ver charla de Agrovia en Facebook"), 1)
+        self.assertIn("class=\"charla-agrovia-marco\"", content)
+        self.assertIn("aspect-ratio: 1613 / 600", content)
+        image_position = content.index('src="/static/img/charla_agrovia.jpg"')
+        facebook_link_position = content.index("Ver charla de Agrovia en Facebook")
+        self.assertLess(image_position, facebook_link_position)
 
     @patch("app.query", return_value=[])
     def test_agrovia_talk_is_shown_when_no_publications_are_registered(self, query):
