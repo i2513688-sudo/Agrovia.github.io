@@ -1,10 +1,10 @@
-{% extends "base.html" %}{% block content %}<main class="container"><h1>Lotes agrícolas</h1><div class="grid">{% for l in lots %}<article class="card"><h3>{{ l.producto }}</h3><p><b>{{ l.codigo_lote }}</b></p><p>Productor: {{ l.productor }}</p><p>Producción: {{ l.produccion_min or '-' }} - {{ l.produccion_max or '-' }}</p><p>Precio: <b>S/ {{ l.precio_publicado }}</b></p><p>Cosecha: {{ l.fecha_cosecha_inicio or '-' }} al {{ l.fecha_cosecha_fin or '-' }}</p><span class="badge">{{ l.estado }}</span>
+{% extends "base.html" %}{% block title %}{{ _('Lotes agrícolas') }}{% endblock %}{% block content %}<main class="container"><h1>{{ _('Lotes agrícolas') }}</h1><div class="grid">{% for l in lots %}<article class="card"><h3>{{ l.producto }}</h3><p><b>{{ l.codigo_lote }}</b></p><p>{{ _('Productor:') }} {{ l.productor }}</p><p>{{ _('Producción:') }} {{ l.produccion_min or '-' }} - {{ l.produccion_max or '-' }}</p><p>{{ _('Precio:') }} <b>S/ {{ l.precio_publicado }}</b></p><p>{{ _('Cosecha:') }} {{ l.fecha_cosecha_inicio or '-' }} {{ _('al') }} {{ l.fecha_cosecha_fin or '-' }}</p><span class="badge">{{ l.estado }}</span>
 {% if session_user and 'COMPRADOR' in session_roles %}
 <form method="POST" action="{{ url_for('generar_cotizacion_lote', id_lote=l.id_lote) }}" style="margin-top: 12px;">
-    <button type="submit" class="btn">Generar cotización</button>
+    <button type="submit" class="btn">{{ _('Generar cotización') }}</button>
 </form>
 <form method="POST" action="{{ url_for('reservar_lote', id_lote=l.id_lote) }}" style="margin-top: 12px;">
-    <button type="submit" class="btn">Reservar lote</button>
+    <button type="submit" class="btn">{{ _('Reservar lote') }}</button>
 </form>
 {% endif %}
- </article>{% else %}<div class="card">No hay lotes registrados.</div>{% endfor %}</div></main>{% endblock %}
+ </article>{% else %}<div class="card">{{ _('No hay lotes registrados.') }}</div>{% endfor %}</div></main>{% endblock %}

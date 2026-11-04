@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Catálogo de productos | Agrovia{% endblock %}
+{% block title %}{{ _('Catálogo de productos | Agrovia') }}{% endblock %}
 
 {% block content %}
 <style>
@@ -117,12 +117,12 @@
 
 <main class="catalogo">
     <header class="catalogo-head">
-        <h1>Catálogo de productos</h1>
-        <p>Explora los productos agrícolas por categoría.</p>
+        <h1>{{ _('Catálogo de productos') }}</h1>
+        <p>{{ _('Explora los productos agrícolas por categoría.') }}</p>
     </header>
 
-    <nav class="catalogo-filtros" aria-label="Filtrar productos por categoría">
-        <button type="button" class="catalogo-filtro activo" data-filter="todas" aria-pressed="true">Todos</button>
+    <nav class="catalogo-filtros" aria-label="{{ _('Filtrar productos por categoría') }}">
+        <button type="button" class="catalogo-filtro activo" data-filter="todas" aria-pressed="true">{{ _('Todos') }}</button>
         {% for category in categories %}
         <button type="button" class="catalogo-filtro" data-filter="{{ category.nombre|lower }}" aria-pressed="false">{{ category.nombre }}</button>
         {% endfor %}
@@ -143,7 +143,7 @@
             </div>
         </article>
         {% else %}
-        <p class="catalogo-vacio">No hay productos disponibles por el momento.</p>
+        <p class="catalogo-vacio">{{ _('No hay productos disponibles por el momento.') }}</p>
         {% endfor %}
     </section>
 </main>

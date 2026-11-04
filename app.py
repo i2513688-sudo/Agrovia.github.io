@@ -14,10 +14,15 @@ from decimal import Decimal, InvalidOperation, ROUND_CEILING, ROUND_HALF_UP
 from email.message import EmailMessage
 from email.utils import formataddr, parseaddr
 from functools import wraps
+from http.client import HTTPException
 from urllib.error import URLError
-from urllib.parse import urlsplit
+from urllib.parse import urlencode, urlsplit
 from urllib.request import Request as URLRequest, urlopen
 
+from requests.exceptions import RequestException
+from twilio.base.exceptions import TwilioException, TwilioRestException
+from twilio.http.http_client import TwilioHttpClient
+from twilio.rest import Client as TwilioClient
 from flask import (
     Flask,
     abort,
@@ -32,6 +37,7 @@ from flask import (
     send_file,
 )
 
+from flask_babel import Babel, gettext
 from jinja2.ext import Extension
 from markupsafe import Markup, escape
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -49,6 +55,40 @@ from db import query, execute, get_connection
 load_dotenv()
 
 app = Flask(__name__)
+IDIOMAS_DISPONIBLES = {"es", "en"}
+
+
+def seleccionar_idioma():
+    idioma = session.get("idioma", "es")
+    return idioma if idioma in IDIOMAS_DISPONIBLES else "es"
+
+
+def obtener_base_url_publica():
+    base_url = os.getenv("APP_BASE_URL", "").strip().rstrip("/")
+    partes = urlsplit(base_url)
+    if (
+        partes.scheme not in {"http", "https"}
+        or not partes.netloc
+        or partes.username
+        or partes.password
+        or any(caracter.isspace() for caracter in base_url)
+    ):
+        return None
+    if partes.scheme != "https" and partes.hostname not in {
+        "localhost", "127.0.0.1", "::1"
+    }:
+        return None
+    return base_url
+
+
+app.config.update(
+    BABEL_DEFAULT_LOCALE="es",
+    BABEL_TRANSLATION_DIRECTORIES="translations",
+)
+babel = Babel(app, locale_selector=seleccionar_idioma)
+app.jinja_env.globals["_"] = gettext
+app.jinja_env.globals["get_locale"] = seleccionar_idioma
+
 entorno = os.getenv("APP_ENV", "development").lower()
 secret_key = os.getenv("SECRET_KEY")
 if not secret_key:
@@ -92,6 +132,106 @@ def productos_con_imagen(productos):
     return resultado
 
 
+def configuracion_turnstile_valida():
+    return bool(
+        os.getenv("TURNSTILE_SITE_KEY", "").strip()
+        and os.getenv("TURNSTILE_SECRET_KEY", "").strip()
+    )
+
+
+def configuracion_sms_valida():
+    return bool(
+        os.getenv("TWILIO_ACCOUNT_SID", "").strip()
+        and os.getenv("TWILIO_AUTH_TOKEN", "").strip()
+        and os.getenv("TWILIO_VERIFY_SERVICE_SID", "").strip()
+    )
+
+
+def verificar_turnstile(token, remote_ip=None):
+    secreto = os.getenv("TURNSTILE_SECRET_KEY", "").strip()
+    if not secreto or not token:
+        return False
+
+    datos = {"secret": secreto, "response": token}
+    if remote_ip:
+        datos["remoteip"] = remote_ip
+    solicitud = URLRequest(
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+        data=urlencode(datos).encode("utf-8"),
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    try:
+        with urlopen(solicitud, timeout=5) as respuesta:
+            resultado = json.loads(respuesta.read().decode("utf-8"))
+    except (HTTPException, URLError, TimeoutError, ValueError, OSError):
+        app.logger.warning("No se pudo validar el desafío de Cloudflare Turnstile.")
+        return False
+
+    if not isinstance(resultado, dict):
+        app.logger.warning("Cloudflare Turnstile devolvió una respuesta no válida.")
+        return False
+    return resultado.get("success") is True
+
+
+def enviar_codigo_verificacion_sms(telefono):
+    if not configuracion_sms_valida():
+        app.logger.error("Falta configurar Twilio Verify para enviar el código SMS.")
+        return False
+
+    try:
+        cliente = TwilioClient(
+            os.getenv("TWILIO_ACCOUNT_SID", "").strip(),
+            os.getenv("TWILIO_AUTH_TOKEN", "").strip(),
+            http_client=TwilioHttpClient(timeout=10, max_retries=1),
+        )
+        resultado = cliente.verify.v2.services(
+            os.getenv("TWILIO_VERIFY_SERVICE_SID", "").strip()
+        ).verifications.create(to=telefono, channel="sms")
+    except TwilioRestException as error:
+        app.logger.warning(
+            "Twilio rechazó el envío de verificación SMS (código: %s).",
+            error.code or "desconocido",
+        )
+        return False
+    except (TwilioException, RequestException, OSError, ValueError) as error:
+        app.logger.warning(
+            "No se pudo enviar el código SMS con Twilio (tipo de error: %s).",
+            type(error).__name__,
+        )
+        return False
+
+    return resultado.status in {"pending", "approved"}
+
+
+def validar_codigo_verificacion_sms(telefono, codigo):
+    if not configuracion_sms_valida() or not codigo:
+        return False
+
+    try:
+        cliente = TwilioClient(
+            os.getenv("TWILIO_ACCOUNT_SID", "").strip(),
+            os.getenv("TWILIO_AUTH_TOKEN", "").strip(),
+            http_client=TwilioHttpClient(timeout=10, max_retries=1),
+        )
+        resultado = cliente.verify.v2.services(
+            os.getenv("TWILIO_VERIFY_SERVICE_SID", "").strip()
+        ).verification_checks.create(to=telefono, code=codigo)
+    except TwilioRestException as error:
+        app.logger.warning(
+            "Twilio no pudo validar el código SMS (código: %s).",
+            error.code or "desconocido",
+        )
+        return False
+    except (TwilioException, RequestException, OSError, ValueError) as error:
+        app.logger.warning(
+            "No se pudo validar el código SMS con Twilio (tipo de error: %s).",
+            type(error).__name__,
+        )
+        return False
+
+    return resultado.status == "approved"
+
+
 class CSRFFormExtension(Extension):
     def preprocess(self, source, *args, **kwargs):
         del args, kwargs
@@ -126,6 +266,26 @@ def csrf_input():
 
 
 app.jinja_env.globals["csrf_input"] = csrf_input
+app.jinja_env.globals["turnstile_site_key"] = lambda: os.getenv(
+    "TURNSTILE_SITE_KEY", ""
+).strip()
+
+
+@app.route("/idioma", methods=["POST"])
+def cambiar_idioma():
+    idioma = request.form.get("idioma", "")
+    if idioma not in IDIOMAS_DISPONIBLES:
+        abort(400, description="El idioma seleccionado no está disponible.")
+
+    session["idioma"] = idioma
+    destino = request.form.get("next", "/")
+    if (
+        not destino.startswith("/")
+        or destino.startswith("//")
+        or "\\" in destino
+    ):
+        destino = url_for("index")
+    return redirect(destino)
 
 
 @app.before_request
@@ -141,25 +301,26 @@ def proteger_solicitudes_de_escritura():
         abort(400, description="Token CSRF ausente o inválido.")
 
 
-def enviar_correo_recuperacion(destinatario, enlace):
+def enviar_correo(destinatario, asunto, contenido, proposito):
     host = os.getenv("SMTP_HOST", "").strip()
     usuario = os.getenv("SMTP_USER", "").strip()
     remitente_configurado = os.getenv("SMTP_FROM", "").strip() or usuario
     _, remitente = parseaddr(remitente_configurado)
     if not host or "@" not in remitente or not destinatario:
         app.logger.error(
-            "No se puede enviar recuperación: faltan SMTP_HOST, SMTP_FROM/SMTP_USER "
-            "o el correo registrado del usuario."
+            "No se puede enviar %s: faltan SMTP_HOST, SMTP_FROM/SMTP_USER "
+            "o el correo registrado del usuario.",
+            proposito
         )
         return False
 
     try:
         puerto = int(os.getenv("SMTP_PORT", "587").strip())
     except ValueError:
-        app.logger.error("SMTP_PORT debe ser un número válido.")
+        app.logger.error("SMTP_PORT debe ser un número válido para %s.", proposito)
         return False
     if not 1 <= puerto <= 65535:
-        app.logger.error("SMTP_PORT está fuera del rango permitido.")
+        app.logger.error("SMTP_PORT está fuera del rango permitido para %s.", proposito)
         return False
 
     usar_tls = os.getenv("SMTP_USE_TLS", "true").strip().lower() in {
@@ -177,18 +338,10 @@ def enviar_correo_recuperacion(destinatario, enlace):
         return False
 
     mensaje = EmailMessage()
-    mensaje["Subject"] = "Recuperación de cuenta Agrovia"
+    mensaje["Subject"] = asunto
     mensaje["From"] = formataddr(("Agrovia", remitente))
     mensaje["To"] = destinatario
-    mensaje.set_content(
-        "Hola,\n\n"
-        "Recibimos una solicitud para cambiar la contraseña de tu cuenta de Agrovia. "
-        "Abre el siguiente enlace dentro de los próximos 30 minutos:\n\n"
-        f"{enlace}\n\n"
-        "Si no solicitaste el cambio, ignora este mensaje.\n\n"
-        "Atentamente,\n"
-        "Equipo Agrovia"
-    )
+    mensaje.set_content(contenido)
 
     try:
         if usar_ssl:
@@ -208,17 +361,19 @@ def enviar_correo_recuperacion(destinatario, enlace):
                     respuesta[0] for respuesta in rechazados.values()
                 })
                 app.logger.error(
-                    "El servidor SMTP rechazó el destinatario del correo de "
-                    "recuperación (código SMTP: %s).",
+                    "El servidor SMTP rechazó el destinatario del correo de %s "
+                    "(código SMTP: %s).",
+                    proposito,
                     ", ".join(str(codigo) for codigo in codigos)
                 )
                 return False
-        app.logger.info("El servidor SMTP aceptó el correo de recuperación.")
+        app.logger.info("El servidor SMTP aceptó el correo de %s.", proposito)
         return True
     except smtplib.SMTPAuthenticationError as error:
         app.logger.error(
-            "El servidor SMTP rechazó la autenticación (código SMTP: %s). "
+            "El servidor SMTP rechazó la autenticación para %s (código SMTP: %s). "
             "Verifica usuario y contraseña de aplicación.",
+            proposito,
             error.smtp_code
         )
         return False
@@ -227,24 +382,178 @@ def enviar_correo_recuperacion(destinatario, enlace):
             respuesta[0] for respuesta in error.recipients.values()
         })
         app.logger.error(
-            "El servidor SMTP rechazó el destinatario del correo de "
-            "recuperación (código SMTP: %s).",
+            "El servidor SMTP rechazó el destinatario del correo de %s "
+            "(código SMTP: %s).",
+            proposito,
             ", ".join(str(codigo) for codigo in codigos)
         )
         return False
     except smtplib.SMTPResponseException as error:
         app.logger.error(
-            "El servidor SMTP rechazó el correo de recuperación "
-            "(código SMTP: %s).",
+            "El servidor SMTP rechazó el correo de %s (código SMTP: %s).",
+            proposito,
             error.smtp_code
         )
         return False
     except (OSError, smtplib.SMTPException) as error:
         app.logger.error(
-            "No se pudo enviar el correo de recuperación (tipo de error: %s).",
+            "No se pudo enviar el correo de %s (tipo de error: %s).",
+            proposito,
             type(error).__name__
         )
         return False
+
+
+def enviar_correo_recuperacion(destinatario, enlace):
+    contenido = (
+        "Hola,\n\n"
+        "Recibimos una solicitud para cambiar la contraseña de tu cuenta de Agrovia. "
+        "Abre el siguiente enlace dentro de los próximos 30 minutos:\n\n"
+        f"{enlace}\n\n"
+        "Si no solicitaste el cambio, ignora este mensaje.\n\n"
+        "Atentamente,\n"
+        "Equipo Agrovia"
+    )
+    return enviar_correo(
+        destinatario, "Recuperación de cuenta Agrovia", contenido, "recuperación"
+    )
+
+
+def enviar_correo_verificacion(destinatario, enlace):
+    contenido = (
+        "Hola,\n\n"
+        "Confirma tu correo para activar tu cuenta de Agrovia abriendo este enlace "
+        "dentro de las próximas 24 horas:\n\n"
+        f"{enlace}\n\n"
+        "Si no creaste esta cuenta, puedes ignorar este mensaje.\n\n"
+        "Hello,\n\n"
+        "Confirm your email address to activate your Agrovia account by opening "
+        "this link within 24 hours:\n\n"
+        f"{enlace}\n\n"
+        "If you did not create this account, you can ignore this message.\n"
+    )
+    return enviar_correo(
+        destinatario, "Confirma tu correo | Verify your email - Agrovia",
+        contenido, "verificación de correo"
+    )
+
+
+def configuracion_verificacion_correo_valida():
+    host = os.getenv("SMTP_HOST", "").strip()
+    usuario = os.getenv("SMTP_USER", "").strip()
+    remitente_configurado = os.getenv("SMTP_FROM", "").strip() or usuario
+    _, remitente = parseaddr(remitente_configurado)
+    return bool(host and "@" in remitente and obtener_base_url_publica())
+
+
+def configuracion_registro_valida():
+    return bool(
+        configuracion_verificacion_correo_valida()
+        and configuracion_sms_valida()
+        and configuracion_turnstile_valida()
+    )
+
+
+def crear_y_enviar_token_verificacion(id_usuario, correo):
+    base_url = obtener_base_url_publica()
+    if not configuracion_verificacion_correo_valida() or not base_url:
+        app.logger.error(
+            "No se puede verificar el correo: revisa SMTP_HOST, SMTP_FROM/SMTP_USER "
+            "y APP_BASE_URL."
+        )
+        return False
+
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    id_token = execute(
+        """
+        INSERT INTO tokens_seguridad
+        (id_usuario, tipo, codigo_hash, fecha_expiracion, utilizado)
+        VALUES (%s, 'VERIFICAR_CORREO', %s, DATE_ADD(NOW(), INTERVAL 24 HOUR), 0)
+        """,
+        (id_usuario, token_hash)
+    )
+    enlace = f"{base_url}{url_for('verificar_correo', token=token)}"
+    if enviar_correo_verificacion(correo, enlace):
+        return True
+
+    execute(
+        "UPDATE tokens_seguridad SET utilizado = 1 WHERE id_token = %s",
+        (id_token,)
+    )
+    return False
+
+
+def crear_y_enviar_codigo_telefono(id_usuario, telefono):
+    if not configuracion_sms_valida():
+        app.logger.error("Falta configurar Twilio Verify para verificar el teléfono.")
+        return False
+
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        conn.start_transaction()
+        cur.execute(
+            """
+            SELECT id_usuario
+            FROM usuarios
+            WHERE id_usuario = %s
+              AND estado = 'PENDIENTE'
+              AND correo_verificado = 1
+              AND telefono_verificado = 0
+            LIMIT 1
+            FOR UPDATE
+            """,
+            (id_usuario,)
+        )
+        if not cur.fetchone():
+            conn.rollback()
+            return False
+
+        cur.execute(
+            """
+            SELECT COUNT(*) AS total
+            FROM tokens_seguridad
+            WHERE id_usuario = %s
+              AND tipo = 'VERIFICAR_TELEFONO'
+              AND fecha_creacion >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+            """,
+            (id_usuario,)
+        )
+        recientes = cur.fetchone()
+        if int((recientes or {}).get("total") or 0) >= 3:
+            conn.rollback()
+            app.logger.warning("Envío de código SMS limitado por superar el máximo.")
+            return False
+
+        nonce_hash = hashlib.sha256(
+            secrets.token_urlsafe(32).encode("utf-8")
+        ).hexdigest()
+        cur.execute(
+            """
+            INSERT INTO tokens_seguridad
+            (id_usuario, tipo, codigo_hash, fecha_expiracion, utilizado)
+            VALUES (%s, 'VERIFICAR_TELEFONO', %s, DATE_ADD(NOW(), INTERVAL 10 MINUTE), 0)
+            """,
+            (id_usuario, nonce_hash)
+        )
+        id_token = cur.lastrowid
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+        conn.close()
+
+    if enviar_codigo_verificacion_sms(telefono):
+        return True
+
+    execute(
+        "UPDATE tokens_seguridad SET utilizado = 1 WHERE id_token = %s",
+        (id_token,)
+    )
+    return False
 
 
 # ==========================================================
@@ -1724,6 +2033,14 @@ def login():
 
         if user["estado"] != "ACTIVO":
 
+            if user.get("estado") == "PENDIENTE" and not user.get("correo_verificado"):
+                flash(
+                    "Tu cuenta aún no está activa. Confirma tu correo y teléfono "
+                    "para completar el registro.",
+                    "warning"
+                )
+                return render_template("login.html")
+
             flash(
                 "El usuario no está activo.",
                 "warning"
@@ -1798,11 +2115,18 @@ def logout():
 def registro():
 
     if request.method == "POST":
+        if not verificar_turnstile(
+            request.form.get("cf-turnstile-response", ""),
+            request.remote_addr,
+        ):
+            flash("Completa la verificación anti-robots e inténtalo nuevamente.", "warning")
+            return render_template("registro.html")
 
         nombres = request.form["nombres"].strip()
         apellido_paterno = request.form["apellido_paterno"].strip()
         apellido_materno = request.form["apellido_materno"].strip()
 
+        tipo_documento = request.form.get("tipo_documento", "DNI")
         documento = request.form["numero_documento"].strip()
         telefono = request.form["telefono"].strip()
         correo = request.form["correo"].strip()
@@ -1812,6 +2136,18 @@ def registro():
         tipo_persona = request.form["tipo_persona"]
         codigo_referido = request.form.get("codigo_referido", "").strip().upper()
         referidor = None
+
+        if tipo_documento not in {"DNI", "RUC", "CE", "PASAPORTE", "OTRO"}:
+            flash("Selecciona un tipo de documento válido.", "warning")
+            return render_template("registro.html")
+
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", correo):
+            flash("Ingresa un correo electrónico válido.", "warning")
+            return render_template("registro.html")
+
+        if not re.fullmatch(r"\+[1-9]\d{7,14}", telefono):
+            flash("Ingresa el teléfono en formato internacional, por ejemplo +51999111222.", "warning")
+            return render_template("registro.html")
 
         if tipo_persona not in {"PRODUCTOR", "COMPRADOR"}:
             flash("Selecciona un tipo de cuenta válido.", "warning")
@@ -1878,6 +2214,14 @@ def registro():
 
             return render_template("registro.html")
 
+        if not configuracion_registro_valida():
+            flash(
+                "El registro requiere correo verificado, SMS y CAPTCHA. "
+                "Configura SMTP, Twilio Verify, Cloudflare Turnstile y APP_BASE_URL.",
+                "danger"
+            )
+            return render_template("registro.html")
+
         codigo = generar_codigo(
             "USR",
             "usuarios",
@@ -1905,7 +2249,7 @@ def registro():
             VALUES
             (
                 %s,
-                'DNI',
+                %s,
                 %s,
                 %s,
                 %s,
@@ -1914,11 +2258,12 @@ def registro():
                 %s,
                 %s,
                 'WEB',
-                'ACTIVO'
+                'PENDIENTE'
             )
             """,
             (
                 codigo,
+                tipo_documento,
                 documento,
                 nombres,
                 apellido_paterno,
@@ -2034,14 +2379,328 @@ def registro():
                 (referidor["id_usuario"], id_usuario, codigo_referido)
             )
 
+        if not crear_y_enviar_token_verificacion(id_usuario, correo):
+            flash(
+                "La cuenta quedó pendiente porque no se pudo enviar el correo. "
+                "Puedes solicitar otro enlace de verificación.",
+                "warning"
+            )
+            return redirect(url_for("reenviar_verificacion"))
+
         flash(
-            "Registro realizado correctamente. Ahora puedes iniciar sesión.",
+            "Registro realizado. Revisa tu correo y confirma la dirección "
+            "para activar tu cuenta.",
             "success"
         )
 
         return redirect(url_for("login"))
 
     return render_template("registro.html")
+
+
+@app.route("/verificar-correo/<token>", methods=["GET", "POST"])
+def verificar_correo(token):
+    if request.method == "GET":
+        return render_template("confirmar_correo.html", token=token)
+    if not verificar_turnstile(
+        request.form.get("cf-turnstile-response", ""),
+        request.remote_addr,
+    ):
+        flash("Completa la verificación anti-robots e inténtalo nuevamente.", "warning")
+        return render_template("confirmar_correo.html", token=token)
+
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        conn.start_transaction()
+        cur.execute(
+            """
+            SELECT ts.id_token, ts.id_usuario, u.telefono
+            FROM tokens_seguridad ts
+            INNER JOIN usuarios u ON u.id_usuario = ts.id_usuario
+            WHERE ts.codigo_hash = %s
+              AND ts.tipo = 'VERIFICAR_CORREO'
+              AND ts.utilizado = 0
+              AND ts.fecha_expiracion > NOW()
+              AND u.estado = 'PENDIENTE'
+              AND u.correo_verificado = 0
+            LIMIT 1
+            FOR UPDATE
+            """,
+            (token_hash,)
+        )
+        verificacion = cur.fetchone()
+        if not verificacion:
+            conn.rollback()
+            flash(
+                "El enlace de verificación no es válido, ya se usó o venció.",
+                "warning"
+            )
+            return redirect(url_for("login"))
+
+        cur.execute(
+            """
+            UPDATE usuarios
+            SET correo_verificado = 1
+            WHERE id_usuario = %s
+              AND estado = 'PENDIENTE'
+              AND correo_verificado = 0
+            """,
+            (verificacion["id_usuario"],)
+        )
+        if cur.rowcount != 1:
+            conn.rollback()
+            flash(
+                "No se pudo activar la cuenta. Solicita un nuevo enlace de verificación.",
+                "warning"
+            )
+            return redirect(url_for("login"))
+
+        cur.execute(
+            """
+            UPDATE tokens_seguridad
+            SET utilizado = 1
+            WHERE id_usuario = %s
+              AND tipo = 'VERIFICAR_CORREO'
+              AND utilizado = 0
+            """,
+            (verificacion["id_usuario"],)
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+        conn.close()
+
+    session["verificacion_telefono_usuario_id"] = verificacion["id_usuario"]
+    if crear_y_enviar_codigo_telefono(
+        verificacion["id_usuario"], verificacion["telefono"]
+    ):
+        flash("Correo confirmado. Te enviamos un código SMS para activar tu cuenta.", "success")
+    else:
+        flash(
+            "Correo confirmado. No pudimos enviar el SMS; solicita un nuevo código.",
+            "warning"
+        )
+    return redirect(url_for("verificar_telefono"))
+
+
+@app.route("/verificar-telefono", methods=["GET", "POST"])
+def verificar_telefono():
+    id_usuario = session.get("verificacion_telefono_usuario_id")
+    if not id_usuario:
+        flash("Primero confirma tu correo para verificar el teléfono.", "warning")
+        return redirect(url_for("reenviar_verificacion"))
+
+    usuario = query(
+        """
+        SELECT id_usuario, telefono
+        FROM usuarios
+        WHERE id_usuario = %s
+          AND estado = 'PENDIENTE'
+          AND correo_verificado = 1
+          AND telefono_verificado = 0
+        LIMIT 1
+        """,
+        (id_usuario,),
+        one=True
+    )
+    if not usuario:
+        session.pop("verificacion_telefono_usuario_id", None)
+        flash("La cuenta ya está verificada o no está disponible.", "info")
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        if not verificar_turnstile(
+            request.form.get("cf-turnstile-response", ""),
+            request.remote_addr,
+        ):
+            flash("Completa la verificación anti-robots e inténtalo nuevamente.", "warning")
+            return render_template("verificar_telefono.html")
+
+        codigo = request.form.get("codigo", "").strip()
+        if not re.fullmatch(r"\d{4,10}", codigo):
+            flash("Ingresa el código numérico que recibiste por SMS.", "warning")
+            return render_template("verificar_telefono.html")
+
+        if not validar_codigo_verificacion_sms(usuario["telefono"], codigo):
+            flash("El código no es válido o venció. Inténtalo nuevamente.", "warning")
+            return render_template("verificar_telefono.html")
+
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        try:
+            conn.start_transaction()
+            cur.execute(
+                """
+                SELECT id_usuario
+                FROM usuarios
+                WHERE id_usuario = %s
+                  AND estado = 'PENDIENTE'
+                  AND correo_verificado = 1
+                  AND telefono_verificado = 0
+                LIMIT 1
+                FOR UPDATE
+                """,
+                (id_usuario,)
+            )
+            usuario_pendiente = cur.fetchone()
+            if not usuario_pendiente:
+                conn.rollback()
+                session.pop("verificacion_telefono_usuario_id", None)
+                flash("La cuenta ya está verificada o no está disponible.", "info")
+                return redirect(url_for("login"))
+
+            cur.execute(
+                """
+                UPDATE usuarios
+                SET telefono_verificado = 1, estado = 'ACTIVO'
+                WHERE id_usuario = %s
+                  AND correo_verificado = 1
+                  AND estado = 'PENDIENTE'
+                """,
+                (id_usuario,)
+            )
+            if cur.rowcount != 1:
+                conn.rollback()
+                flash("No se pudo activar la cuenta. Inténtalo nuevamente.", "warning")
+                return render_template("verificar_telefono.html")
+
+            cur.execute(
+                """
+                UPDATE tokens_seguridad
+                SET utilizado = 1
+                WHERE id_usuario = %s
+                  AND tipo = 'VERIFICAR_TELEFONO'
+                  AND utilizado = 0
+                """,
+                (id_usuario,)
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cur.close()
+            conn.close()
+
+        session.pop("verificacion_telefono_usuario_id", None)
+        flash("Correo y teléfono confirmados. Ya puedes iniciar sesión.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("verificar_telefono.html")
+
+
+@app.route("/reenviar-codigo-sms", methods=["POST"])
+def reenviar_codigo_sms():
+    id_usuario = session.get("verificacion_telefono_usuario_id")
+    if not id_usuario:
+        flash("Primero confirma tu correo para verificar el teléfono.", "warning")
+        return redirect(url_for("reenviar_verificacion"))
+    if not verificar_turnstile(
+        request.form.get("cf-turnstile-response", ""),
+        request.remote_addr,
+    ):
+        flash("Completa la verificación anti-robots e inténtalo nuevamente.", "warning")
+        return redirect(url_for("verificar_telefono"))
+
+    usuario = query(
+        """
+        SELECT id_usuario, telefono
+        FROM usuarios
+        WHERE id_usuario = %s
+          AND estado = 'PENDIENTE'
+          AND correo_verificado = 1
+          AND telefono_verificado = 0
+        LIMIT 1
+        """,
+        (id_usuario,),
+        one=True
+    )
+    if not usuario:
+        session.pop("verificacion_telefono_usuario_id", None)
+        flash("La cuenta ya está verificada o no está disponible.", "info")
+        return redirect(url_for("login"))
+
+    if crear_y_enviar_codigo_telefono(id_usuario, usuario["telefono"]):
+        flash("Enviamos un nuevo código de verificación.", "success")
+    else:
+        flash(
+            "No pudimos enviar otro código. Revisa la configuración o inténtalo más tarde.",
+            "warning"
+        )
+    return redirect(url_for("verificar_telefono"))
+
+
+@app.route("/reenviar-verificacion", methods=["GET", "POST"])
+def reenviar_verificacion():
+    if request.method == "POST":
+        if not verificar_turnstile(
+            request.form.get("cf-turnstile-response", ""),
+            request.remote_addr,
+        ):
+            flash("Completa la verificación anti-robots e inténtalo nuevamente.", "warning")
+            return render_template("reenviar_verificacion.html")
+
+        correo = request.form.get("correo", "").strip()
+        if re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", correo):
+            try:
+                usuario = query(
+                    """
+                    SELECT id_usuario, correo, telefono,
+                           correo_verificado, telefono_verificado
+                    FROM usuarios
+                    WHERE correo = %s
+                      AND estado = 'PENDIENTE'
+                      AND (correo_verificado = 0 OR telefono_verificado = 0)
+                    LIMIT 1
+                    """,
+                    (correo,),
+                    one=True
+                )
+                if usuario and usuario["correo_verificado"]:
+                    if crear_y_enviar_codigo_telefono(
+                        usuario["id_usuario"], usuario["telefono"]
+                    ):
+                        session["verificacion_telefono_usuario_id"] = usuario["id_usuario"]
+                elif usuario and configuracion_verificacion_correo_valida():
+                    if usuario:
+                        recientes = query(
+                            """
+                            SELECT COUNT(*) AS total
+                            FROM tokens_seguridad
+                            WHERE id_usuario = %s
+                              AND tipo = 'VERIFICAR_CORREO'
+                              AND fecha_creacion >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+                            """,
+                            (usuario["id_usuario"],),
+                            one=True
+                        )
+                        if int((recientes or {}).get("total") or 0) < 3:
+                            crear_y_enviar_token_verificacion(
+                                usuario["id_usuario"], usuario["correo"]
+                            )
+                        else:
+                            app.logger.warning(
+                                "Reenvío de verificación limitado por superar "
+                                "el máximo de enlaces."
+                            )
+            except MySQLDatabaseError:
+                app.logger.exception(
+                    "No se pudo procesar el reenvío del correo de verificación."
+                )
+
+        flash(
+            "Si existe una cuenta pendiente para ese correo, procesaremos "
+            "la solicitud de verificación.",
+            "info"
+        )
+        return redirect(url_for("reenviar_verificacion"))
+
+    return render_template("reenviar_verificacion.html")
 
 
 # ==========================================================

@@ -59,6 +59,30 @@ Abrir: http://127.0.0.1:5000
 ## 6. Recuperación de cuenta
 El enlace de recuperación solo se envía cuando SMTP está configurado. Los tokens se almacenan como hash, expiran a los 30 minutos y se invalidan al cambiar la contraseña.
 
+## 7. Verificación de correo
+El registro requiere `SMTP_HOST`, `SMTP_FROM` (o `SMTP_USER`), una `APP_BASE_URL` pública válida, claves de Cloudflare Turnstile y credenciales de Twilio Verify. Cada cuenta web se crea como pendiente; el enlace de correo expira en 24 horas y el código SMS se confirma con Twilio antes de activar la cuenta. Las verificaciones de correo y SMS tienen un máximo de tres envíos cada 15 minutos. El código SMS no se guarda en Agrovia. La contraseña y los datos se guardan al solicitar el registro, pero la cuenta no puede iniciar sesión hasta completar ambas verificaciones.
+
+Configura estas variables en `.env`:
+
+```env
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_VERIFY_SERVICE_SID=
+```
+
+Obtén las claves de Turnstile desde Cloudflare y registra el dominio de la aplicación. En Twilio, crea un servicio **Verify** y coloca su SID `VA...` en `TWILIO_VERIFY_SERVICE_SID`; habilita SMS y revisa las restricciones de números del proyecto. Los teléfonos ingresados deben incluir prefijo internacional E.164, por ejemplo `+51999111222`. Protege los secretos en `.env`; nunca los subas al repositorio. La validación Turnstile falla de forma cerrada si el servicio no está configurado o no responde. Selenium no interviene en la protección de usuarios: es una herramienta para automatizar pruebas del navegador.
+
+## 8. Idiomas
+La aplicación permite elegir español o inglés desde el selector de idioma de la barra superior; la preferencia se conserva en la sesión y el español es el idioma predeterminado. La navegación compartida, el inicio, el catálogo, los lotes y las pantallas de acceso/registro/recuperación tienen traducciones en inglés; para extenderlas a otras vistas, marca sus textos con gettext. Las traducciones usan Flask-Babel y los catálogos gettext de `translations/`. Al agregar o modificar traducciones, edita `translations/en/LC_MESSAGES/messages.po` y compílalo con:
+
+```bash
+venv\Scripts\pybabel compile -d translations -l en
+```
+
+En las plantillas, marca el texto visible con `{{ _('Texto en español') }}` para que aparezca en el catálogo en inglés.
+
 ## Módulos incluidos
 - Inicio / marketplace
 - Inicio de sesión

@@ -3,7 +3,7 @@
 
 {% block title %}
 
-    Agrovia | Marketplace Agrícola
+    {{ _('Agrovia | Marketplace Agrícola') }}
 
 {% endblock %}
 
@@ -22,10 +22,10 @@
 
             <h1>
 
-                Conectamos el campo
+                {{ _('Conectamos el campo') }}
 
                 <span>
-                    con el mercado.
+                    {{ _('con el mercado.') }}
                 </span>
 
             </h1>
@@ -33,11 +33,7 @@
 
             <p>
 
-                Agrovia es una plataforma web que
-                conecta productores agrícolas con
-                compradores, facilitando la
-                comercialización de productos
-                agrícolas.
+                {{ _('Agrovia es una plataforma web que conecta productores agrícolas con compradores, facilitando la comercialización de productos agrícolas.') }}
 
             </p>
 
@@ -51,7 +47,7 @@
 
                     <i class="fa-solid fa-basket-shopping"></i>
 
-                    Ver lotes disponibles
+                    {{ _('Ver lotes disponibles') }}
 
                 </a>
 
@@ -65,7 +61,7 @@
 
             <img
                 src="{{ url_for('static', filename='img/sembrado papa.png') }}"
-                alt="Campo sembrado"
+                alt="{{ _('Campo sembrado') }}"
             >
 
         </div>
@@ -82,7 +78,7 @@
         <div class="section-header">
 
             <h2>
-                ¿Qué puedes hacer en Agrovia?
+                {{ _('¿Qué puedes hacer en Agrovia?') }}
             </h2>
 
         </div>
@@ -101,15 +97,13 @@
 
 
                 <h3>
-                    Productores
+                    {{ _('Productores') }}
                 </h3>
 
 
                 <p>
 
-                    Registra tus predios, cultivos
-                    y solicitudes de lotes para
-                    ofrecer tus productos agrícolas.
+                    {{ _('Registra tus predios, cultivos y solicitudes de lotes para ofrecer tus productos agrícolas.') }}
 
                 </p>
 
@@ -127,15 +121,13 @@
 
 
                 <h3>
-                    Compradores
+                    {{ _('Compradores') }}
                 </h3>
 
 
                 <p>
 
-                    Encuentra productos agrícolas
-                    y lotes disponibles de diferentes
-                    productores.
+                    {{ _('Encuentra productos agrícolas y lotes disponibles de diferentes productores.') }}
 
                 </p>
 
@@ -153,14 +145,13 @@
 
 
                 <h3>
-                    Operaciones
+                    {{ _('Operaciones') }}
                 </h3>
 
 
                 <p>
 
-                    Gestiona cotizaciones, reservas,
-                    operaciones comerciales y pagos.
+                    {{ _('Gestiona cotizaciones, reservas, operaciones comerciales y pagos.') }}
 
                 </p>
 
@@ -178,15 +169,13 @@
 
 
                 <h3>
-                    Entregas
+                    {{ _('Entregas') }}
                 </h3>
 
 
                 <p>
 
-                    Realiza el seguimiento de las
-                    entregas y registra la recepción
-                    de los productos.
+                    {{ _('Realiza el seguimiento de las entregas y registra la recepción de los productos.') }}
 
                 </p>
 
@@ -207,13 +196,13 @@
         <div class="section-header">
 
             <h2>
-                Productos agrícolas
+                {{ _('Productos agrícolas') }}
             </h2>
 
 
             <a href="{{ url_for('productos') }}">
 
-                Ver todos
+                {{ _('Ver todos') }}
 
                 <i class="fa-solid fa-arrow-right"></i>
 
@@ -259,9 +248,7 @@
                             <p>{{ product.descripcion }}</p>
                         {% elif not product.descripcion %}
                             <p>
-                                Producto agrícola
-                                disponible para
-                                comercialización.
+                                {{ _('Producto agrícola disponible para comercialización.') }}
                             </p>
                         {% endif %}
 
@@ -284,15 +271,13 @@
 
 
                     <h3>
-                        No hay productos
+                        {{ _('No hay productos') }}
                     </h3>
 
 
                     <p>
 
-                        Todavía no existen productos
-                        activos registrados en la
-                        base de datos.
+                        {{ _('Todavía no existen productos activos registrados en la base de datos.') }}
 
                     </p>
 
@@ -316,13 +301,13 @@
         <div class="section-header">
 
             <h2>
-                Lotes disponibles
+                {{ _('Lotes disponibles') }}
             </h2>
 
 
             <a href="{{ url_for('lotes') }}">
 
-                Ver todos
+                {{ _('Ver todos') }}
 
                 <i class="fa-solid fa-arrow-right"></i>
 
@@ -357,7 +342,7 @@
                     <p>
 
                         <strong>
-                            Productor:
+                            {{ _('Productor:') }}
                         </strong>
 
                         {{ lot.productor }}
@@ -385,7 +370,7 @@
                         <p>
 
                             <strong>
-                                Cosecha:
+                                {{ _('Cosecha:') }}
                             </strong>
 
                             {{ lot.fecha_cosecha_inicio }}
@@ -434,15 +419,13 @@
 
 
                     <h3>
-                        No hay lotes disponibles
+                        {{ _('No hay lotes disponibles') }}
                     </h3>
 
 
                     <p>
 
-                        Actualmente no existen lotes
-                        disponibles para
-                        comercialización.
+                        {{ _('Actualmente no existen lotes disponibles para comercialización.') }}
 
                     </p>
 
@@ -466,7 +449,7 @@
         <div class="section-header">
 
             <h2>
-                ¿Cómo funciona Agrovia?
+                {{ _('¿Cómo funciona Agrovia?') }}
             </h2>
 
         </div>
@@ -485,14 +468,13 @@
 
 
                 <h3>
-                    01. Registro
+                    {{ _('01. Registro') }}
                 </h3>
 
 
                 <p>
 
-                    El usuario crea su cuenta
-                    como productor o comprador.
+                    {{ _('El usuario crea su cuenta como productor o comprador.') }}
 
                 </p>
 
@@ -510,14 +492,13 @@
 
 
                 <h3>
-                    02. Publicación
+                    {{ _('02. Publicación') }}
                 </h3>
 
 
                 <p>
 
-                    El productor registra su predio,
-                    cultivo y solicitud de lote.
+                    {{ _('El productor registra su predio, cultivo y solicitud de lote.') }}
 
                 </p>
 
@@ -535,14 +516,13 @@
 
 
                 <h3>
-                    03. Búsqueda
+                    {{ _('03. Búsqueda') }}
                 </h3>
 
 
                 <p>
 
-                    El comprador consulta los
-                    productos y lotes disponibles.
+                    {{ _('El comprador consulta los productos y lotes disponibles.') }}
 
                 </p>
 
@@ -560,14 +540,13 @@
 
 
                 <h3>
-                    04. Operación
+                    {{ _('04. Operación') }}
                 </h3>
 
 
                 <p>
 
-                    Se gestiona la cotización,
-                    reserva, operación y pago.
+                    {{ _('Se gestiona la cotización, reserva, operación y pago.') }}
 
                 </p>
 
@@ -594,17 +573,14 @@
 
                 <h1 style="font-size: 32px;">
 
-                    Forma parte de Agrovia
+                    {{ _('Forma parte de Agrovia') }}
 
                 </h1>
 
 
                 <p>
 
-                    Productores y compradores pueden
-                    utilizar la plataforma para
-                    facilitar la comercialización
-                    de productos agrícolas.
+                    {{ _('Productores y compradores pueden utilizar la plataforma para facilitar la comercialización de productos agrícolas.') }}
 
                 </p>
 
@@ -619,7 +595,7 @@
 
                         <i class="fa-solid fa-user-plus"></i>
 
-                        Registrarme
+                        {{ _('Registrarme') }}
 
                     </a>
 
@@ -627,17 +603,17 @@
                 {% elif 'ADMINISTRADOR' in session_roles %}
                     <a class="btn" href="{{ url_for('dashboard') }}">
                         <i class="fa-solid fa-chart-line"></i>
-                        Ir al dashboard
+                        {{ _('Ir al dashboard') }}
                     </a>
                 {% elif 'PRODUCTOR' in session_roles %}
                     <a class="btn" href="{{ url_for('solicitar_lote') }}">
                         <i class="fa-solid fa-plus"></i>
-                        Publicar lote
+                        {{ _('Publicar lote') }}
                     </a>
                 {% else %}
                     <a class="btn" href="{{ url_for('lotes') }}">
                         <i class="fa-solid fa-layer-group"></i>
-                        Explorar lotes
+                        {{ _('Explorar lotes') }}
                     </a>
                 {% endif %}
 

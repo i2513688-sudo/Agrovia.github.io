@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Verificar correo') }}{% endblock %}
+
+{% block content %}
+<main class="container">
+    <section class="form">
+        <h1>{{ _('Verificar correo') }}</h1>
+        <p class="muted">
+            {{ _('Ingresa el correo usado al registrarte para continuar la verificación de la cuenta.') }}
+        </p>
+        <form method="post">
+            <label for="correo">{{ _('Correo') }}</label>
+            <input id="correo" name="correo" type="email" autocomplete="email" required>
+            {% if turnstile_site_key() %}
+            <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key() }}"></div>
+            {% endif %}
+            <button type="submit" class="btn">{{ _('Reenviar enlace') }}</button>
+        </form>
+        {% if session.get('verificacion_telefono_usuario_id') %}
+        <p><a href="{{ url_for('verificar_telefono') }}">{{ _('Ingresar código SMS') }}</a></p>
+        {% endif %}
+        <p><a href="{{ url_for('login') }}">{{ _('Volver al inicio de sesión') }}</a></p>
+    </section>
+</main>
+{% if turnstile_site_key() %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
+{% endblock %}

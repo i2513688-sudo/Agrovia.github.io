@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ get_locale() }}">
 
 <head>
     <meta charset="UTF-8">
@@ -189,6 +189,23 @@
             gap: 14px;
 
             margin-left: 8px;
+        }
+
+        .language-form {
+            display: flex;
+            align-items: center;
+            margin: 0;
+        }
+
+        .language-select {
+            min-height: 38px;
+            border: 1px solid var(--agro-border);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--agro-ink);
+            font: inherit;
+            font-size: 13px;
+            padding: 0 8px;
         }
 
         .icon-btn {
@@ -2139,42 +2156,42 @@
                 href="{{ url_for('index') }}"
             >
                 <i class="fa-solid fa-house"></i>
-                Inicio
+                {{ _('Inicio') }}
             </a>
 
             <a class="{{ 'active' if request.endpoint == 'productos' else '' }}" href="{{ url_for('productos') }}">
                 <i class="fa-solid fa-box"></i>
-                Productos
+                {{ _('Productos') }}
             </a>
 
             <a class="{{ 'active' if request.endpoint == 'lotes' else '' }}" href="{{ url_for('lotes') }}">
                 <i class="fa-solid fa-layer-group"></i>
-                Lotes
+                {{ _('Lotes') }}
             </a>
 
             <a class="{{ 'active' if request.endpoint == 'vida_agrovia' else '' }}" href="{{ url_for('vida_agrovia') }}">
                 <i class="fa-solid fa-seedling"></i>
-                Sobre AgroVía
+                {{ _('Sobre AgroVía') }}
             </a>
 
             {% if 'PRODUCTOR' in session_roles or 'COMPRADOR' in session_roles %}
             <a class="{{ 'active' if request.endpoint == 'beneficios_usuario' else '' }}" href="{{ url_for('beneficios_usuario') }}">
                 <i class="fa-solid fa-gift"></i>
-                Beneficios
+                {{ _('Beneficios') }}
             </a>
             <a class="{{ 'active' if request.endpoint == 'mis_referidos' else '' }}" href="{{ url_for('mis_referidos') }}">
                 <i class="fa-solid fa-user-group"></i>
-                Referidos
+                {{ _('Referidos') }}
             </a>
             {% if 'PRODUCTOR' in session_roles %}
-            <a class="{{ 'active' if request.endpoint == 'mis_solicitudes_lote' else '' }}" href="{{ url_for('mis_solicitudes_lote') }}">Mis solicitudes</a>
+            <a class="{{ 'active' if request.endpoint == 'mis_solicitudes_lote' else '' }}" href="{{ url_for('mis_solicitudes_lote') }}">{{ _('Mis solicitudes') }}</a>
             {% endif %}
             {% if 'COMPRADOR' in session_roles or 'PRODUCTOR' in session_roles %}
-            <a class="{{ 'active' if request.endpoint == 'mis_operaciones' else '' }}" href="{{ url_for('mis_operaciones') }}">Mis operaciones</a>
+            <a class="{{ 'active' if request.endpoint == 'mis_operaciones' else '' }}" href="{{ url_for('mis_operaciones') }}">{{ _('Mis operaciones') }}</a>
             {% endif %}
             {% endif %}
             {% if 'TRANSPORTISTA' in session_roles %}
-            <a class="{{ 'active' if request.endpoint == 'mis_transportes' else '' }}" href="{{ url_for('mis_transportes') }}">Mis transportes</a>
+            <a class="{{ 'active' if request.endpoint == 'mis_transportes' else '' }}" href="{{ url_for('mis_transportes') }}">{{ _('Mis transportes') }}</a>
             {% endif %}
 
             <span class="nav-indicator" aria-hidden="true"></span>
@@ -2189,7 +2206,7 @@
                     href="{{ url_for('notificaciones') }}"
                 >
                     <i class="fa-solid fa-bell"></i>
-                    Notificaciones
+                    {{ _('Notificaciones') }}
                 </a>
 
                 <a
@@ -2205,7 +2222,7 @@
                     href="{{ url_for('logout') }}"
                 >
                     <i class="fa-solid fa-right-from-bracket"></i>
-                    Salir
+                    {{ _('Salir') }}
                 </a>
 
             {% else %}
@@ -2215,7 +2232,7 @@
                     href="{{ url_for('login') }}"
                 >
                     <i class="fa-solid fa-right-to-bracket"></i>
-                    Iniciar sesión
+                    {{ _('Iniciar sesión') }}
                 </a>
 
                 <a
@@ -2223,10 +2240,24 @@
                     href="{{ url_for('registro') }}"
                 >
                     <i class="fa-solid fa-user-plus"></i>
-                    Registrarse
+                    {{ _('Registrarse') }}
                 </a>
 
             {% endif %}
+
+            <form class="language-form" action="{{ url_for('cambiar_idioma') }}" method="POST">
+                <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}">
+                <select
+                    class="language-select"
+                    id="language-select"
+                    name="idioma"
+                    aria-label="{{ _('Idioma') }}"
+                    onchange="this.form.submit()"
+                >
+                    <option value="es" {{ 'selected' if get_locale() == 'es' else '' }}>Español</option>
+                    <option value="en" {{ 'selected' if get_locale() == 'en' else '' }}>English</option>
+                </select>
+            </form>
 
         </div>
 
@@ -2241,13 +2272,13 @@
 
         {% if session_user and ('ADMINISTRADOR' in session_roles or session_permissions) %}
 
-            <nav class="admin-panel" aria-label="Menú administrativo">
+            <nav class="admin-panel" aria-label="{{ _('Menú administrativo') }}">
 
                 <div class="admin-panel__header">
 
                     <span>
                         <i class="fa-solid fa-shield-halved"></i>
-                        Panel administrativo
+                        {{ _('Panel administrativo') }}
                     </span>
 
                 </div>
@@ -2255,7 +2286,7 @@
                 <div class="admin-panel__group">
 
                     <span class="admin-panel__label">
-                        Resumen
+                        {{ _('Resumen') }}
                     </span>
 
                     {% if 'REPORTES_VER' in session_permissions %}
@@ -2264,7 +2295,7 @@
                         href="{{ url_for('dashboard') }}"
                     >
                         <i class="fa-solid fa-chart-line"></i>
-                        Dashboard
+                        {{ _('Dashboard') }}
                     </a>
 
                     <a
@@ -2272,7 +2303,7 @@
                         href="{{ url_for('operaciones') }}"
                     >
                         <i class="fa-solid fa-file-invoice"></i>
-                        Operaciones
+                        {{ _('Operaciones') }}
                     </a>
                     {% endif %}
 
@@ -2282,7 +2313,7 @@
                         href="{{ url_for('admin_reportes') }}"
                     >
                         <i class="fa-solid fa-file-arrow-down"></i>
-                        Reportes
+                        {{ _('Reportes') }}
                     </a>
                     {% endif %}
 
@@ -2291,7 +2322,7 @@
                 <div class="admin-panel__group">
 
                     <span class="admin-panel__label">
-                        Cadena operativa
+                        {{ _('Cadena operativa') }}
                     </span>
 
                     {% if 'SOLICITUDES_REVISAR' in session_permissions %}
@@ -2300,7 +2331,7 @@
                         href="{{ url_for('admin_solicitudes_lote') }}"
                     >
                         <i class="fa-solid fa-clipboard-check"></i>
-                        Solicitudes de lote
+                        {{ _('Solicitudes de lote') }}
                     </a>
                     {% endif %}
 
@@ -2310,7 +2341,7 @@
                         href="{{ url_for('admin_verificaciones') }}"
                     >
                         <i class="fa-solid fa-magnifying-glass-location"></i>
-                        Verificaciones
+                        {{ _('Verificaciones') }}
                     </a>
                     {% endif %}
 
@@ -2320,7 +2351,7 @@
                         href="{{ url_for('admin_valorizaciones') }}"
                     >
                         <i class="fa-solid fa-coins"></i>
-                        Valorizaciones
+                        {{ _('Valorizaciones') }}
                     </a>
                     {% endif %}
 
@@ -2330,7 +2361,7 @@
                         href="{{ url_for('admin_precios_mercado') }}"
                     >
                         <i class="fa-solid fa-chart-column"></i>
-                        Precios de mercado
+                        {{ _('Precios de mercado') }}
                     </a>
                     {% endif %}
 
@@ -2340,7 +2371,7 @@
                         href="{{ url_for('admin_variedades') }}"
                     >
                         <i class="fa-solid fa-seedling"></i>
-                        Variedades
+                        {{ _('Variedades') }}
                     </a>
 
                     <a
@@ -2348,7 +2379,7 @@
                         href="{{ url_for('admin_parametros_agricolas') }}"
                     >
                         <i class="fa-solid fa-sliders"></i>
-                        Parámetros agrícolas
+                        {{ _('Parámetros agrícolas') }}
                     </a>
                     {% endif %}
 
@@ -2358,7 +2389,7 @@
                         href="{{ url_for('admin_configuracion_logistica') }}"
                     >
                         <i class="fa-solid fa-truck-ramp-box"></i>
-                        Configuración logística
+                        {{ _('Configuración logística') }}
                     </a>
 
                     <a
@@ -2366,7 +2397,7 @@
                         href="{{ url_for('admin_cotizaciones') }}"
                     >
                         <i class="fa-solid fa-file-contract"></i>
-                        Cotizaciones
+                        {{ _('Cotizaciones') }}
                     </a>
                     {% endif %}
 
@@ -2376,7 +2407,7 @@
                         href="{{ url_for('admin_pagos') }}"
                     >
                         <i class="fa-solid fa-money-bill-wave"></i>
-                        Pagos
+                        {{ _('Pagos') }}
                     </a>
                     {% endif %}
 
@@ -2386,7 +2417,7 @@
                         href="{{ url_for('admin_cosechas') }}"
                     >
                         <i class="fa-solid fa-tractor"></i>
-                        Cosecha
+                        {{ _('Cosecha') }}
                     </a>
                     {% endif %}
 
@@ -2396,7 +2427,7 @@
                         href="{{ url_for('admin_transportes') }}"
                     >
                         <i class="fa-solid fa-truck-fast"></i>
-                        Transporte
+                        {{ _('Transporte') }}
                     </a>
                     {% endif %}
 
@@ -2406,7 +2437,7 @@
                         href="{{ url_for('admin_entregas') }}"
                     >
                         <i class="fa-solid fa-box-open"></i>
-                        Entregas
+                        {{ _('Entregas') }}
                     </a>
                     {% endif %}
 
@@ -2416,7 +2447,7 @@
                         href="{{ url_for('admin_liquidaciones') }}"
                     >
                         <i class="fa-solid fa-wallet"></i>
-                        Liquidaciones
+                        {{ _('Liquidaciones') }}
                     </a>
                     {% endif %}
 
@@ -2425,7 +2456,7 @@
                 <div class="admin-panel__group">
 
                     <span class="admin-panel__label">
-                        Control y soporte
+                        {{ _('Control y soporte') }}
                     </span>
 
                     {% if 'ADMINISTRADOR' in session_roles %}
@@ -2434,7 +2465,7 @@
                         href="{{ url_for('admin_incidencias') }}"
                     >
                         <i class="fa-solid fa-triangle-exclamation"></i>
-                        Incidencias
+                        {{ _('Incidencias') }}
                     </a>
 
                     <a
@@ -2442,7 +2473,7 @@
                         href="{{ url_for('admin_devoluciones') }}"
                     >
                         <i class="fa-solid fa-arrow-rotate-left"></i>
-                        Devoluciones
+                        {{ _('Devoluciones') }}
                     </a>
 
                     <a
@@ -2450,7 +2481,7 @@
                         href="{{ url_for('admin_notificaciones') }}"
                     >
                         <i class="fa-solid fa-bell"></i>
-                        Notificaciones
+                        {{ _('Notificaciones') }}
                     </a>
                     {% endif %}
 
@@ -2460,7 +2491,7 @@
                         href="{{ url_for('admin_auditoria') }}"
                     >
                         <i class="fa-solid fa-book-open"></i>
-                        Auditoría
+                        {{ _('Auditoría') }}
                     </a>
                     {% endif %}
 
@@ -2470,7 +2501,7 @@
                         href="{{ url_for('admin_permisos') }}"
                     >
                         <i class="fa-solid fa-shield-halved"></i>
-                        Roles y permisos
+                        {{ _('Roles y permisos') }}
                     </a>
                     {% endif %}
 
@@ -2480,7 +2511,7 @@
                         href="{{ url_for('admin_beneficios') }}"
                     >
                         <i class="fa-solid fa-gift"></i>
-                        Beneficios
+                        {{ _('Beneficios') }}
                     </a>
                     {% endif %}
 
@@ -2489,7 +2520,7 @@
                         href="{{ url_for('admin_referidos') }}"
                     >
                         <i class="fa-solid fa-user-group"></i>
-                        Referidos
+                        {{ _('Referidos') }}
                     </a>
 
                     <a
@@ -2497,7 +2528,7 @@
                         href="{{ url_for('admin_publicaciones') }}"
                     >
                         <i class="fa-solid fa-newspaper"></i>
-                        Publicaciones
+                        {{ _('Publicaciones') }}
                     </a>
 
                     <a
@@ -2505,7 +2536,7 @@
                         href="{{ url_for('admin_campanas_agricolas') }}"
                     >
                         <i class="fa-solid fa-seedling"></i>
-                        Campañas agrícolas
+                        {{ _('Campañas agrícolas') }}
                     </a>
 
                     <a
@@ -2513,7 +2544,7 @@
                         href="{{ url_for('admin_capacitaciones') }}"
                     >
                         <i class="fa-solid fa-people-group"></i>
-                        Capacitaciones
+                        {{ _('Capacitaciones') }}
                     </a>
 
                 </div>
@@ -2577,7 +2608,7 @@
             <div>
 
                 <p>
-                    Del campo directo al mercado
+                    {{ _('Del campo directo al mercado') }}
                 </p>
 
                 <p>

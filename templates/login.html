@@ -4,16 +4,16 @@
 
 <div class="form">
 
-    <h2>Iniciar sesión</h2>
+    <h2>{{ _('Iniciar sesión') }}</h2>
 
     <p class="muted">
-        Ingresa con tu correo o número de documento.
+        {{ _('Ingresa con tu correo o número de documento.') }}
     </p>
 
     <form method="POST">
 
         <label>
-            Correo o documento
+            {{ _('Correo o documento') }}
         </label>
 
         <input
@@ -23,7 +23,7 @@
         >
 
         <label>
-            Contraseña
+            {{ _('Contraseña') }}
         </label>
 
         <input
@@ -36,7 +36,7 @@
             class="btn"
             type="submit"
         >
-            Ingresar
+            {{ _('Ingresar') }}
         </button>
 
     </form>
@@ -44,14 +44,20 @@
     <br>
 
     <p>
-        ¿No tienes una cuenta?
+        {{ _('¿No tienes una cuenta?') }}
         <a href="{{ url_for('registro') }}">
-            Registrarse
+            {{ _('Registrarse') }}
         </a>
     </p>
 
     <p>
-        <a href="{{ url_for('recuperar_cuenta') }}">¿Olvidaste tu contraseña?</a>
+        <a href="{{ url_for('recuperar_cuenta') }}">{{ _('¿Olvidaste tu contraseña?') }}</a>
+    </p>
+
+    <p>
+        <a href="{{ url_for('reenviar_verificacion') }}">
+            {{ _('¿No recibiste el correo de verificación?') }}
+        </a>
     </p>
 
 </div>

@@ -10,6 +10,14 @@ class AccessControlTests(unittest.TestCase):
     def setUp(self):
         flask_app.config["TESTING"] = True
         self.client = flask_app.test_client()
+        self.turnstile_patcher = patch("app.verificar_turnstile", return_value=True)
+        self.register_config_patcher = patch(
+            "app.configuracion_registro_valida", return_value=True
+        )
+        self.turnstile_patcher.start()
+        self.register_config_patcher.start()
+        self.addCleanup(self.turnstile_patcher.stop)
+        self.addCleanup(self.register_config_patcher.stop)
 
     def csrf_token(self):
         self.client.get("/registro")
@@ -22,7 +30,7 @@ class AccessControlTests(unittest.TestCase):
             "apellido_paterno": "Pérez",
             "apellido_materno": "",
             "numero_documento": "12345678",
-            "telefono": "999111222",
+            "telefono": "+51999111222",
             "correo": "ana@example.test",
             "password": "secure-pass-123",
             "tipo_persona": "COMPRADOR",

@@ -1,0 +1,464 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Agrovia 1.0\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Agrovia | Marketplace Agrícola"
+msgstr "Agrovia | Agricultural Marketplace"
+
+msgid "Conectamos el campo"
+msgstr "Connecting the countryside"
+
+msgid "con el mercado."
+msgstr "to the marketplace."
+
+msgid "Agrovia es una plataforma web que conecta productores agrícolas con compradores, facilitando la comercialización de productos agrícolas."
+msgstr "Agrovia is a web platform that connects agricultural producers with buyers, making it easier to market agricultural products."
+
+msgid "Ver lotes disponibles"
+msgstr "Browse available lots"
+
+msgid "Campo sembrado"
+msgstr "Planted field"
+
+msgid "¿Qué puedes hacer en Agrovia?"
+msgstr "What can you do with Agrovia?"
+
+msgid "Productores"
+msgstr "Producers"
+
+msgid "Registra tus predios, cultivos y solicitudes de lotes para ofrecer tus productos agrícolas."
+msgstr "Register your farms, crops, and lot requests to offer your agricultural products."
+
+msgid "Compradores"
+msgstr "Buyers"
+
+msgid "Encuentra productos agrícolas y lotes disponibles de diferentes productores."
+msgstr "Find agricultural products and available lots from different producers."
+
+msgid "Operaciones"
+msgstr "Operations"
+
+msgid "Gestiona cotizaciones, reservas, operaciones comerciales y pagos."
+msgstr "Manage quotes, reservations, commercial transactions, and payments."
+
+msgid "Entregas"
+msgstr "Deliveries"
+
+msgid "Realiza el seguimiento de las entregas y registra la recepción de los productos."
+msgstr "Track deliveries and confirm receipt of products."
+
+msgid "Productos agrícolas"
+msgstr "Agricultural products"
+
+msgid "Ver todos"
+msgstr "View all"
+
+msgid "Producto agrícola disponible para comercialización."
+msgstr "Agricultural product available for sale."
+
+msgid "No hay productos"
+msgstr "No products found"
+
+msgid "Todavía no existen productos activos registrados en la base de datos."
+msgstr "There are no active products registered in the database yet."
+
+msgid "Lotes disponibles"
+msgstr "Available lots"
+
+msgid "Productor:"
+msgstr "Producer:"
+
+msgid "Cosecha:"
+msgstr "Harvest:"
+
+msgid "No hay lotes disponibles"
+msgstr "No lots available"
+
+msgid "Actualmente no existen lotes disponibles para comercialización."
+msgstr "There are currently no lots available for sale."
+
+msgid "¿Cómo funciona Agrovia?"
+msgstr "How does Agrovia work?"
+
+msgid "01. Registro"
+msgstr "01. Sign up"
+
+msgid "El usuario crea su cuenta como productor o comprador."
+msgstr "Users create an account as a producer or buyer."
+
+msgid "02. Publicación"
+msgstr "02. Listing"
+
+msgid "El productor registra su predio, cultivo y solicitud de lote."
+msgstr "The producer registers their farm, crop, and lot request."
+
+msgid "03. Búsqueda"
+msgstr "03. Discovery"
+
+msgid "El comprador consulta los productos y lotes disponibles."
+msgstr "The buyer browses available products and lots."
+
+msgid "04. Operación"
+msgstr "04. Transaction"
+
+msgid "Se gestiona la cotización, reserva, operación y pago."
+msgstr "The quote, reservation, transaction, and payment are managed."
+
+msgid "Forma parte de Agrovia"
+msgstr "Be part of Agrovia"
+
+msgid "Productores y compradores pueden utilizar la plataforma para facilitar la comercialización de productos agrícolas."
+msgstr "Producers and buyers can use the platform to make it easier to market agricultural products."
+
+msgid "Registrarme"
+msgstr "Sign up"
+
+msgid "Ir al dashboard"
+msgstr "Go to dashboard"
+
+msgid "Publicar lote"
+msgstr "List a lot"
+
+msgid "Explorar lotes"
+msgstr "Explore lots"
+
+msgid "Inicio"
+msgstr "Home"
+
+msgid "Productos"
+msgstr "Products"
+
+msgid "Lotes"
+msgstr "Lots"
+
+msgid "Sobre AgroVía"
+msgstr "About Agrovia"
+
+msgid "Beneficios"
+msgstr "Benefits"
+
+msgid "Referidos"
+msgstr "Referrals"
+
+msgid "Mis solicitudes"
+msgstr "My requests"
+
+msgid "Mis operaciones"
+msgstr "My transactions"
+
+msgid "Mis transportes"
+msgstr "My deliveries"
+
+msgid "Notificaciones"
+msgstr "Notifications"
+
+msgid "Salir"
+msgstr "Log out"
+
+msgid "Iniciar sesión"
+msgstr "Log in"
+
+msgid "Registrarse"
+msgstr "Sign up"
+
+msgid "Idioma"
+msgstr "Language"
+
+msgid "Menú administrativo"
+msgstr "Admin menu"
+
+msgid "Panel administrativo"
+msgstr "Admin panel"
+
+msgid "Resumen"
+msgstr "Overview"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Reportes"
+msgstr "Reports"
+
+msgid "Cadena operativa"
+msgstr "Operations"
+
+msgid "Solicitudes de lote"
+msgstr "Lot requests"
+
+msgid "Verificaciones"
+msgstr "Inspections"
+
+msgid "Valorizaciones"
+msgstr "Valuations"
+
+msgid "Precios de mercado"
+msgstr "Market prices"
+
+msgid "Variedades"
+msgstr "Varieties"
+
+msgid "Parámetros agrícolas"
+msgstr "Agricultural parameters"
+
+msgid "Configuración logística"
+msgstr "Logistics settings"
+
+msgid "Cotizaciones"
+msgstr "Quotes"
+
+msgid "Pagos"
+msgstr "Payments"
+
+msgid "Cosecha"
+msgstr "Harvest"
+
+msgid "Transporte"
+msgstr "Transport"
+
+msgid "Liquidaciones"
+msgstr "Settlements"
+
+msgid "Control y soporte"
+msgstr "Control and support"
+
+msgid "Incidencias"
+msgstr "Issues"
+
+msgid "Devoluciones"
+msgstr "Returns"
+
+msgid "Auditoría"
+msgstr "Audit"
+
+msgid "Roles y permisos"
+msgstr "Roles and permissions"
+
+msgid "Publicaciones"
+msgstr "Posts"
+
+msgid "Campañas agrícolas"
+msgstr "Agricultural campaigns"
+
+msgid "Capacitaciones"
+msgstr "Training"
+
+msgid "Del campo directo al mercado"
+msgstr "From the field straight to market"
+
+msgid "Ingresa con tu correo o número de documento."
+msgstr "Sign in with your email or ID number."
+
+msgid "Correo o documento"
+msgstr "Email or ID number"
+
+msgid "Contraseña"
+msgstr "Password"
+
+msgid "Ingresar"
+msgstr "Log in"
+
+msgid "¿No tienes una cuenta?"
+msgstr "Don't have an account?"
+
+msgid "¿Olvidaste tu contraseña?"
+msgstr "Forgot your password?"
+
+msgid "Crear cuenta"
+msgstr "Create account"
+
+msgid "Regístrate como productor o comprador."
+msgstr "Sign up as a producer or buyer."
+
+msgid "Nombres"
+msgstr "First name(s)"
+
+msgid "Apellido paterno"
+msgstr "Last name"
+
+msgid "Apellido materno"
+msgstr "Second last name"
+
+msgid "Número de documento"
+msgstr "ID number"
+
+msgid "Tipo de documento"
+msgstr "Document type"
+
+msgid "DNI"
+msgstr "National ID (DNI)"
+
+msgid "RUC"
+msgstr "Tax ID (RUC)"
+
+msgid "Carné de extranjería"
+msgstr "Foreigner ID"
+
+msgid "Pasaporte"
+msgstr "Passport"
+
+msgid "Otro"
+msgstr "Other"
+
+msgid "Teléfono"
+msgstr "Phone"
+
+msgid "Correo"
+msgstr "Email"
+
+msgid "Tipo de usuario"
+msgstr "Account type"
+
+msgid "Seleccionar"
+msgstr "Select"
+
+msgid "Productor agrícola"
+msgstr "Agricultural producer"
+
+msgid "Código de referido (opcional)"
+msgstr "Referral code (optional)"
+
+msgid "Recuperar contraseña"
+msgstr "Reset password"
+
+msgid "Correo de la cuenta"
+msgstr "Account email"
+
+msgid "Enviar enlace"
+msgstr "Send link"
+
+msgid "Volver al inicio de sesión"
+msgstr "Back to log in"
+
+msgid "Verificar correo"
+msgstr "Verify email"
+
+msgid "Ingresa el correo usado al registrarte para continuar la verificación de la cuenta."
+msgstr "Enter the email address you used to sign up to continue account verification."
+
+msgid "Reenviar enlace"
+msgstr "Resend link"
+
+msgid "¿No recibiste el correo de verificación?"
+msgstr "Didn't receive the verification email?"
+
+msgid "Confirmar correo"
+msgstr "Confirm email"
+
+msgid "Confirma tu correo para continuar con la verificación de tu teléfono."
+msgstr "Confirm your email to continue verifying your phone."
+
+msgid "Confirmar correo y enviar código SMS"
+msgstr "Confirm email and send SMS code"
+
+msgid "Verificar teléfono"
+msgstr "Verify phone"
+
+msgid "Ingresa el código enviado por SMS para activar tu cuenta."
+msgstr "Enter the code sent by SMS to activate your account."
+
+msgid "Código SMS"
+msgstr "SMS code"
+
+msgid "Confirmar teléfono"
+msgstr "Verify phone"
+
+msgid "Solicitar otro código"
+msgstr "Request another code"
+
+msgid "Ingresar código SMS"
+msgstr "Enter SMS code"
+
+msgid "Incluye el código de país, por ejemplo +51999111222."
+msgstr "Include your country code, for example +15551234567."
+
+msgid "Tu cuenta aún no está activa. Confirma tu correo y teléfono para completar el registro."
+msgstr "Your account is not active yet. Verify your email and phone to complete sign-up."
+
+msgid "El registro requiere correo verificado, SMS y CAPTCHA. Configura SMTP, Twilio Verify, Cloudflare Turnstile y APP_BASE_URL."
+msgstr "Sign-up requires email verification, SMS, and CAPTCHA. Configure SMTP, Twilio Verify, Cloudflare Turnstile, and APP_BASE_URL."
+
+msgid "Completa la verificación anti-robots e inténtalo nuevamente."
+msgstr "Complete the anti-bot verification and try again."
+
+msgid "Correo confirmado. Te enviamos un código SMS para activar tu cuenta."
+msgstr "Email confirmed. We sent you an SMS code to activate your account."
+
+msgid "Correo confirmado. No pudimos enviar el SMS; solicita un nuevo código."
+msgstr "Email confirmed. We couldn't send the SMS; request a new code."
+
+msgid "Primero confirma tu correo para verificar el teléfono."
+msgstr "Confirm your email first to verify your phone."
+
+msgid "Ingresa el teléfono en formato internacional, por ejemplo +51999111222."
+msgstr "Enter your phone number in international format, for example +15551234567."
+
+msgid "El código no es válido o venció. Inténtalo nuevamente."
+msgstr "The code is invalid or expired. Try again."
+
+msgid "Correo y teléfono confirmados. Ya puedes iniciar sesión."
+msgstr "Email and phone verified. You can now log in."
+
+msgid "No pudimos enviar otro código. Revisa la configuración o inténtalo más tarde."
+msgstr "We couldn't send another code. Check the configuration or try again later."
+
+msgid "Enviamos un nuevo código de verificación."
+msgstr "We sent a new verification code."
+
+msgid "Si existe una cuenta pendiente para ese correo, procesaremos la solicitud de verificación."
+msgstr "If there is a pending account for that email, we'll process the verification request."
+
+msgid "Nueva contraseña"
+msgstr "New password"
+
+msgid "Crear nueva contraseña"
+msgstr "Create a new password"
+
+msgid "Confirmar contraseña"
+msgstr "Confirm password"
+
+msgid "Actualizar contraseña"
+msgstr "Update password"
+
+msgid "Catálogo de productos | Agrovia"
+msgstr "Product catalog | Agrovia"
+
+msgid "Catálogo de productos"
+msgstr "Product catalog"
+
+msgid "Explora los productos agrícolas por categoría."
+msgstr "Browse agricultural products by category."
+
+msgid "Filtrar productos por categoría"
+msgstr "Filter products by category"
+
+msgid "Todos"
+msgstr "All"
+
+msgid "No hay productos disponibles por el momento."
+msgstr "No products are available at this time."
+
+msgid "Lotes agrícolas"
+msgstr "Agricultural lots"
+
+msgid "Producción:"
+msgstr "Production:"
+
+msgid "Precio:"
+msgstr "Price:"
+
+msgid "al"
+msgstr "to"
+
+msgid "Generar cotización"
+msgstr "Request a quote"
+
+msgid "Reservar lote"
+msgstr "Reserve lot"
+
+msgid "No hay lotes registrados."
+msgstr "No lots have been listed."

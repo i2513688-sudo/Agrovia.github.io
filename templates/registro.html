@@ -6,35 +6,44 @@
 
     <div class="form">
 
-        <h1>Crear cuenta</h1>
+        <h1>{{ _('Crear cuenta') }}</h1>
 
         <p class="muted">
-            Regístrate como productor o comprador.
+            {{ _('Regístrate como productor o comprador.') }}
         </p>
 
         <form method="POST">
 
-            <label>Nombres</label>
+            <label>{{ _('Nombres') }}</label>
             <input
                 type="text"
                 name="nombres"
                 required
             >
 
-            <label>Apellido paterno</label>
+            <label>{{ _('Apellido paterno') }}</label>
             <input
                 type="text"
                 name="apellido_paterno"
                 required
             >
 
-            <label>Apellido materno</label>
+            <label>{{ _('Apellido materno') }}</label>
             <input
                 type="text"
                 name="apellido_materno"
             >
 
-            <label>Número de documento</label>
+            <label for="tipo_documento">{{ _('Tipo de documento') }}</label>
+            <select id="tipo_documento" name="tipo_documento" required>
+                <option value="DNI">{{ _('DNI') }}</option>
+                <option value="RUC">{{ _('RUC') }}</option>
+                <option value="CE">{{ _('Carné de extranjería') }}</option>
+                <option value="PASAPORTE">{{ _('Pasaporte') }}</option>
+                <option value="OTRO">{{ _('Otro') }}</option>
+            </select>
+
+            <label>{{ _('Número de documento') }}</label>
             <input
                 type="text"
                 name="numero_documento"
@@ -42,48 +51,55 @@
                 required
             >
 
-            <label>Teléfono</label>
+            <label>{{ _('Teléfono') }}</label>
             <input
                 type="text"
                 name="telefono"
                 maxlength="20"
+                placeholder="+51999111222"
+                pattern="\+[1-9][0-9]{7,14}"
+                title="{{ _('Incluye el código de país, por ejemplo +51999111222.') }}"
                 required
             >
 
-            <label>Correo</label>
+            <label>{{ _('Correo') }}</label>
             <input
                 type="email"
                 name="correo"
                 required
             >
 
-            <label>Contraseña</label>
+            <label>{{ _('Contraseña') }}</label>
             <input
                 type="password"
                 name="password"
                 required
             >
 
-            <label>Tipo de usuario</label>
+            <label>{{ _('Tipo de usuario') }}</label>
 
             <select name="tipo_persona" required>
 
                 <option value="">
-                    Seleccionar
+                    {{ _('Seleccionar') }}
                 </option>
 
                 <option value="PRODUCTOR">
-                    Productor agrícola
+                    {{ _('Productor agrícola') }}
                 </option>
 
                 <option value="COMPRADOR">
-                    Comprador
+                    {{ _('Comprador') }}
                 </option>
 
             </select>
 
-            <label>Código de referido (opcional)</label>
+            <label>{{ _('Código de referido (opcional)') }}</label>
             <input type="text" name="codigo_referido" maxlength="40" placeholder="AGROVIA-USR-00001">
+
+            {% if turnstile_site_key() %}
+            <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key() }}"></div>
+            {% endif %}
 
             <br><br>
 
@@ -91,13 +107,23 @@
                 class="btn"
                 type="submit"
             >
-                Crear cuenta
+                {{ _('Crear cuenta') }}
             </button>
 
         </form>
 
+        <p>
+            <a href="{{ url_for('reenviar_verificacion') }}">
+                {{ _('¿No recibiste el correo de verificación?') }}
+            </a>
+        </p>
+
     </div>
 
 </main>
+
+{% if turnstile_site_key() %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
 
 {% endblock %}
