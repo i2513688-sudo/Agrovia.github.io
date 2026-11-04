@@ -10,7 +10,7 @@ class AccountCleanupTests(unittest.TestCase):
         self.client = flask_app.test_client()
 
     @patch("app.query")
-    def test_payment_methods_are_absent_for_producers_and_buyers(self, query):
+    def test_account_page_contains_only_its_title_for_producers_and_buyers(self, query):
         producer_identity = [{"nombre_rol": "PRODUCTOR", "codigo_permiso": None}]
         buyer_identity = [{"nombre_rol": "COMPRADOR", "codigo_permiso": None}]
 
@@ -19,13 +19,8 @@ class AccountCleanupTests(unittest.TestCase):
             ("COMPRADOR", buyer_identity),
         ):
             with self.subTest(role=role):
-                results = [
-                    identity,
-                    {"id_usuario": 1, "nombres": "Usuario"},
-                ]
-                if role == "COMPRADOR":
-                    results.extend([{"id_comprador": 1}, [], [], []])
-                query.side_effect = results
+                query.reset_mock()
+                query.side_effect = [identity]
 
                 with self.client.session_transaction() as user_session:
                     user_session["user_id"] = 1
@@ -34,8 +29,14 @@ class AccountCleanupTests(unittest.TestCase):
                 page = response.get_data(as_text=True).lower()
 
                 self.assertEqual(response.status_code, 200)
-                self.assertNotIn("medios de pago", page)
-                self.assertNotIn("medio de pago", page)
+                self.assertIn("<h1>mi cuenta</h1>", page)
+                self.assertNotIn("direcciones de entrega", page)
+                self.assertNotIn("datos de facturación", page)
+                self.assertNotIn("nombre:", page)
+                self.assertNotIn("documento:", page)
+                self.assertNotIn("guardar dirección", page)
+                self.assertNotIn("guardar datos fiscales", page)
+                self.assertEqual(query.call_count, 1)
 
     @patch("app.get_connection")
     @patch("app.query", return_value=[
@@ -54,7 +55,7 @@ class AccountCleanupTests(unittest.TestCase):
                 "/mi-cuenta",
                 data={"action": action, "csrf_token": csrf_token},
             )
-            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.status_code, 405)
 
         get_connection.assert_not_called()
 
