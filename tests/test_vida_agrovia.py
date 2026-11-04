@@ -6,6 +6,18 @@ from app import app as flask_app
 
 class VidaAgroviaTests(unittest.TestCase):
     @patch("app.query", return_value=[])
+    def test_hero_uses_potato_planting_image_with_smooth_displacement(self, query):
+        flask_app.config["TESTING"] = True
+        response = flask_app.test_client().get("/vida-agrovia")
+        page = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('url("/static/img/sembrado%20papa.png")', page)
+        self.assertIn("vida-hero-desplazamiento 24s ease-in-out", page)
+        self.assertIn("@keyframes vida-hero-desplazamiento", page)
+        self.assertIn("prefers-reduced-motion: reduce", page)
+
+    @patch("app.query", return_value=[])
     def test_default_sample_content_is_not_displayed(self, query):
         flask_app.config["TESTING"] = True
         response = flask_app.test_client().get("/vida-agrovia")

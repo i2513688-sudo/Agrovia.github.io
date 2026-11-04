@@ -16,21 +16,54 @@
         border-radius: 14px;
         overflow: hidden;
         margin-bottom: 28px;
-        background:
-            linear-gradient(
-                rgba(0, 0, 0, 0.45),
-                rgba(0, 0, 0, 0.45)
-            ),
-            url("{{ url_for('static', filename='img/sembrado veteraga.png') }}")
-            center/cover no-repeat;
+        background: rgba(0, 0, 0, 0.45);
         display: flex;
         align-items: center;
     }
 
+    .vida-hero::before,
+    .vida-hero::after {
+        position: absolute;
+        inset: 0;
+        content: "";
+        pointer-events: none;
+    }
+
+    .vida-hero::before {
+        background: url("{{ url_for('static', filename='img/sembrado papa.png') }}")
+            center/cover no-repeat;
+        animation: vida-hero-desplazamiento 24s ease-in-out infinite alternate;
+        will-change: transform;
+    }
+
+    .vida-hero::after {
+        background: rgba(0, 0, 0, 0.45);
+    }
+
     .vida-hero-content {
+        position: relative;
+        z-index: 1;
         color: white;
         padding: 45px;
         max-width: 650px;
+    }
+
+    @keyframes vida-hero-desplazamiento {
+        from {
+            transform: scale(1.08) translate3d(-1%, 0, 0);
+        }
+
+        to {
+            transform: scale(1.08) translate3d(1%, 0, 0);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .vida-hero::before {
+            animation: none;
+            transform: scale(1.04);
+            will-change: auto;
+        }
     }
 
     .vida-label {
