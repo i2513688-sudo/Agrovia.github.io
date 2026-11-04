@@ -3733,7 +3733,6 @@ def solicitar_lote():
         nombre_producto_personalizado = request.form.get(
             "nombre_producto_personalizado", ""
         ).strip()
-        modo_predio = request.form.get("modo_predio", "nuevo")
         id_predio = request.form.get("id_predio", type=int)
         try:
             area = Decimal(request.form.get("area_cultivada", ""))
@@ -3769,108 +3768,32 @@ def solicitar_lote():
             or not precio_propuesto.is_finite()
             or precio_propuesto <= 0
             or precio_propuesto > Decimal("99999999.9999")
-            or modo_predio not in {"existente", "nuevo"}
         ):
             flash(_("Revisa el producto, el área cultivada y el precio propuesto."), "warning")
             return mostrar_formulario()
 
-        if modo_predio == "existente":
-            predio_elegido = query(
-                """
-                SELECT id_predio, area_total, unidad_area
-                FROM predios
-                WHERE id_predio = %s
-                  AND id_productor = %s
-                  AND estado = 'ACTIVO'
-                LIMIT 1
-                """,
-                (id_predio, productor["id_productor"]),
-                one=True
-            ) if id_predio else None
-            if not predio_elegido:
-                flash(_("Selecciona un predio activo de tu cuenta."), "warning")
-                return mostrar_formulario()
-            area_predio_ha = Decimal(str(predio_elegido["area_total"]))
-            if predio_elegido["unidad_area"] == "METRO_CUADRADO":
-                area_predio_ha /= Decimal("10000")
-            if area > area_predio_ha:
-                flash(_("El área cultivada no puede superar el área total del predio."), "warning")
-                return mostrar_formulario()
-            id_predio = predio_elegido["id_predio"]
-        else:
-            nombre_predio = request.form.get("nombre_predio", "").strip()
-            referencia_predio = request.form.get("referencia_predio", "").strip()
-            unidad_area = request.form.get("unidad_area", "")
-            id_ubigeo = request.form.get("id_ubigeo", type=int)
-            try:
-                area_total = Decimal(request.form.get("area_total", ""))
-                latitud = Decimal(request.form.get("latitud", ""))
-                longitud = Decimal(request.form.get("longitud", ""))
-            except InvalidOperation:
-                flash(_("Completa el área del predio y selecciona su ubicación en el mapa."), "warning")
-                return mostrar_formulario()
-
-            area_total_ha = (
-                area_total / Decimal("10000")
-                if unidad_area == "METRO_CUADRADO"
-                else area_total
-            )
-            if (
-                not nombre_predio
-                or len(nombre_predio) > 120
-                or len(referencia_predio) > 255
-                or not area_total.is_finite()
-                or area_total <= 0
-                or unidad_area not in {"HECTAREA", "METRO_CUADRADO"}
-                or area > area_total_ha
-                or not latitud.is_finite()
-                or not longitud.is_finite()
-                or latitud < -90
-                or latitud > 90
-                or longitud < -180
-                or longitud > 180
-            ):
-                flash(_("Revisa los datos del predio, el área cultivada y la ubicación del mapa."), "warning")
-                return mostrar_formulario()
-
-            ubicacion = query(
-                """
-                SELECT id_ubigeo
-                FROM ubigeos
-                WHERE id_ubigeo = %s
-                  AND estado = 'ACTIVO'
-                LIMIT 1
-                """,
-                (id_ubigeo,),
-                one=True
-            ) if id_ubigeo else None
-            if not ubicacion:
-                flash(_("Selecciona departamento, provincia y distrito."), "warning")
-                return mostrar_formulario()
-
-            codigo_predio = generar_codigo("PRE", "predios", "codigo_predio")
-            id_predio = execute(
-                """
-                INSERT INTO predios
-                (
-                    codigo_predio, id_productor, nombre_predio, referencia,
-                    area_total, unidad_area, id_ubigeo, latitud, longitud,
-                    estado_verificacion, estado
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'PENDIENTE', 'ACTIVO')
-                """,
-                (
-                    codigo_predio,
-                    productor["id_productor"],
-                    nombre_predio,
-                    referencia_predio or None,
-                    area_total,
-                    unidad_area,
-                    id_ubigeo,
-                    latitud,
-                    longitud,
-                )
-            )
+        predio_elegido = query(
+            """
+            SELECT id_predio, area_total, unidad_area
+            FROM predios
+            WHERE id_predio = %s
+              AND id_productor = %s
+              AND estado = 'ACTIVO'
+            LIMIT 1
+            """,
+            (id_predio, productor["id_productor"]),
+            one=True
+        ) if id_predio else None
+        if not predio_elegido:
+            flash(_("Selecciona un predio activo de tu cuenta."), "warning")
+            return mostrar_formulario()
+        area_predio_ha = Decimal(str(predio_elegido["area_total"]))
+        if predio_elegido["unidad_area"] == "METRO_CUADRADO":
+            area_predio_ha /= Decimal("10000")
+        if area > area_predio_ha:
+            flash(_("El área cultivada no puede superar el área total del predio."), "warning")
+            return mostrar_formulario()
+        id_predio = predio_elegido["id_predio"]
 
         codigo = generar_codigo("SOL", "solicitudes_lote", "codigo_solicitud")
         id_solicitud = execute(

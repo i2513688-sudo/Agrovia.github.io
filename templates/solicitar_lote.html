@@ -8,10 +8,7 @@
         <h1>{{ _('Registrar lote') }}</h1>
         <p class="muted">{{ _('Registra el cultivo, el predio y el precio que propones para publicar tu producto.') }}</p>
 
-        <form method="post" enctype="multipart/form-data" data-ubigeo-form
-              data-departamentos-url="{{ url_for('api_ubigeo_departamentos') }}"
-              data-provincias-url="{{ url_for('api_ubigeo_provincias') }}"
-              data-distritos-url="{{ url_for('api_ubigeo_distritos') }}">
+        <form method="post" enctype="multipart/form-data">
             <label for="id_producto">{{ _('Producto') }}</label>
             <select id="id_producto" name="id_producto" required
                     data-quote-url="{{ url_for('api_cotizacion_producto', id_producto=0) }}">
@@ -44,10 +41,6 @@
             <fieldset class="farm-choice">
                 <legend>{{ _('Predio del cultivo') }}</legend>
                 {% if predios %}
-                <label class="choice">
-                    <input type="radio" name="modo_predio" value="existente" checked>
-                    {{ _('Usar un predio registrado') }}
-                </label>
                 <label for="id_predio">{{ _('Seleccionar predio') }}</label>
                 <select id="id_predio" name="id_predio" required>
                     {% for p in predios %}
@@ -56,77 +49,9 @@
                     </option>
                     {% endfor %}
                 </select>
-                <label class="choice">
-                    <input type="radio" name="modo_predio" value="nuevo">
-                    {{ _('Registrar un predio nuevo aquí') }}
-                </label>
                 {% else %}
-                <input type="hidden" name="modo_predio" value="nuevo">
-                <p class="muted">{{ _('Registra los datos del predio y marca su ubicación en el mapa.') }}</p>
+                <p class="muted">{{ _('No tienes predios registrados para seleccionar.') }}</p>
                 {% endif %}
-
-                <fieldset id="new-farm-fields" {% if predios %}disabled{% endif %}>
-                    <legend>{{ _('Datos del predio nuevo') }}</legend>
-                    <label for="nombre_predio">{{ _('Nombre del predio') }}</label>
-                    <input id="nombre_predio" name="nombre_predio" maxlength="120"
-                           data-new-required {% if not predios %}required{% endif %}>
-
-                    <label for="referencia_predio">{{ _('Referencia de ubicación (opcional)') }}</label>
-                    <input id="referencia_predio" name="referencia_predio" maxlength="255">
-
-                    <div class="farm-location">
-                        <label for="departamento-predio">{{ _('Departamento') }}</label>
-                        <select id="departamento-predio" data-ubigeo-departamento required>
-                            <option value="">{{ _('Cargando departamentos...') }}</option>
-                        </select>
-                        <label for="provincia-predio">{{ _('Provincia') }}</label>
-                        <select id="provincia-predio" data-ubigeo-provincia required disabled>
-                            <option value="">{{ _('Selecciona primero un departamento') }}</option>
-                        </select>
-                        <label for="distrito-predio">{{ _('Distrito / ciudad') }}</label>
-                        <select id="distrito-predio" data-ubigeo-distrito required disabled>
-                            <option value="">{{ _('Selecciona primero una provincia') }}</option>
-                        </select>
-                        <input type="hidden" name="id_ubigeo" data-ubigeo-id>
-                        <p class="muted" data-ubigeo-status role="status" aria-live="polite"></p>
-                    </div>
-
-                    <label for="area_total">{{ _('Área total del predio') }}</label>
-                    <div class="farm-area">
-                        <input id="area_total" name="area_total" type="number"
-                               min="0.01" step="0.01" data-new-required
-                               {% if not predios %}required{% endif %}>
-                        <select name="unidad_area" aria-label="{{ _('Unidad del área') }}">
-                            <option value="HECTAREA">{{ _('Hectáreas') }}</option>
-                            <option value="METRO_CUADRADO">{{ _('Metros cuadrados') }}</option>
-                        </select>
-                    </div>
-
-                    <p class="map-help muted" id="map-help">
-                        {{ _('Haz clic en el mapa o arrastra el marcador para señalar el predio.') }}
-                    </p>
-                    <a id="google-maps-link"
-                       href="https://www.google.com/maps/@-12.0763564,-77.0447285,12z?authuser=0&amp;entry=ttu&amp;g_ep=EgoyMDI2MTEwMS4wIKXMDSoASAFQAw%3D%3D"
-                       target="_blank" rel="noopener noreferrer">
-                        {{ _('Abrir Google Maps') }}
-                    </a>
-                    <div id="parcel-map" class="parcel-map" role="application"
-                         aria-label="{{ _('Mapa para seleccionar la ubicación del predio') }}"></div>
-                    <p id="map-status" class="muted" role="status" aria-live="polite"></p>
-
-                    <div class="coordinate-fields">
-                        <label for="latitud">{{ _('Latitud') }}</label>
-                        <input id="latitud" name="latitud" type="number"
-                               min="-90" max="90" step="0.0000001"
-                               data-new-required
-                               {% if not predios %}required{% endif %}>
-                        <label for="longitud">{{ _('Longitud') }}</label>
-                        <input id="longitud" name="longitud" type="number"
-                               min="-180" max="180" step="0.0000001"
-                               data-new-required
-                               {% if not predios %}required{% endif %}>
-                    </div>
-                </fieldset>
             </fieldset>
 
             <label for="area_cultivada">{{ _('Área cultivada (hectáreas)') }}</label>
@@ -152,14 +77,15 @@
             <textarea id="descripcion" name="descripcion" rows="5"
                       placeholder="{{ _('Información adicional del cultivo...') }}"></textarea>
 
-            <button class="btn" type="submit">{{ _('Enviar solicitud') }}</button>
+            <button class="btn" type="submit" {% if not predios %}disabled{% endif %}>
+                {{ _('Enviar solicitud') }}
+            </button>
         </form>
     </section>
 </main>
 
 <style>
-    .lot-registration > form > label,
-    #new-farm-fields > label {
+    .lot-registration > form > label {
         display: block;
         margin: 16px 0 6px;
     }
@@ -193,62 +119,13 @@
         margin-top: 8px;
     }
 
-    .farm-choice legend,
-    #new-farm-fields legend {
+    .farm-choice legend {
         padding: 0 8px;
         font-weight: 700;
     }
 
-    .farm-choice .choice {
-        display: block;
-        margin: 10px 0;
-    }
-
-    .farm-choice .choice input {
-        margin-right: 8px;
-    }
-
-    #new-farm-fields {
-        margin: 18px 0 0;
-        padding: 16px;
-        border: 1px solid #e1e9e2;
-        border-radius: 10px;
-    }
-
-    .farm-area {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(170px, .7fr);
-        gap: 10px;
-    }
-
-    .parcel-map {
-        min-height: 340px;
-        border-radius: 12px;
-        background: #edf3ee;
-    }
-
-    .farm-location label {
-        display: block;
-        margin: 16px 0 6px;
-    }
-
-    .coordinate-fields {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
-        align-items: center;
-        gap: 10px;
-        margin-top: 12px;
-    }
-
-    @media (max-width: 640px) {
-        .farm-area,
-        .coordinate-fields {
-            grid-template-columns: 1fr;
-        }
-    }
 </style>
 
-<script src="{{ url_for('static', filename='ubigeos.js') }}"></script>
 <script>
     (function () {
         const product = document.getElementById("id_producto");
@@ -256,41 +133,6 @@
         const customProductName = document.getElementById("nombre_producto_personalizado");
         const quoteOutput = document.getElementById("market-quote");
         const quoteTemplate = product.dataset.quoteUrl;
-        const farmFields = document.getElementById("new-farm-fields");
-        const farmModes = document.querySelectorAll('input[name="modo_predio"][type="radio"]');
-        const latitude = document.getElementById("latitud");
-        const longitude = document.getElementById("longitud");
-        const mapStatus = document.getElementById("map-status");
-        const googleMapsLink = document.getElementById("google-maps-link");
-        const district = document.getElementById("distrito-predio");
-        let map;
-        let marker;
-        let geocoder;
-
-        function locateSelectedDistrict() {
-            if (!map || !geocoder || !district.value) {
-                return;
-            }
-            latitude.value = "";
-            longitude.value = "";
-            marker.setVisible(false);
-            const province = document.getElementById("provincia-predio").value;
-            const department = document.getElementById("departamento-predio").value;
-            geocoder.geocode(
-                { address: `${district.value}, ${province}, ${department}, Perú` },
-                function (results, status) {
-                    if (status === "OK" && results[0]) {
-                        map.setCenter(results[0].geometry.location);
-                        map.setZoom(13);
-                        mapStatus.textContent =
-                            "{{ _('Lugar seleccionado. Haz clic en el mapa para marcar el predio exacto.') }}";
-                    } else {
-                        mapStatus.textContent =
-                            "{{ _('No se pudo centrar el mapa en el distrito. Puedes buscar el lugar manualmente en el mapa.') }}";
-                    }
-                }
-            );
-        }
 
         function updateCustomProductField() {
             const selectedOption = product.options[product.selectedIndex];
@@ -305,77 +147,6 @@
 
         product.addEventListener("change", updateCustomProductField);
         updateCustomProductField();
-
-        function setCoordinates(lat, lng) {
-            latitude.value = Number(lat).toFixed(7);
-            longitude.value = Number(lng).toFixed(7);
-            mapStatus.textContent = `${latitude.value}, ${longitude.value}`;
-            googleMapsLink.href =
-                `https://www.google.com/maps?q=${latitude.value},${longitude.value}`;
-        }
-
-        window.initParcelMap = function () {
-            const center = { lat: -12.0763564, lng: -77.0447285 };
-            map = new google.maps.Map(document.getElementById("parcel-map"), {
-                center: center,
-                zoom: 12,
-                mapTypeControl: true,
-                streetViewControl: false,
-                fullscreenControl: true
-            });
-            geocoder = new google.maps.Geocoder();
-            marker = new google.maps.Marker({ map: map, position: center, draggable: true });
-            marker.setVisible(false);
-            map.addListener("click", function (event) {
-                marker.setPosition(event.latLng);
-                marker.setVisible(true);
-                setCoordinates(event.latLng.lat(), event.latLng.lng());
-            });
-            marker.addListener("dragend", function (event) {
-                setCoordinates(event.latLng.lat(), event.latLng.lng());
-            });
-            mapStatus.textContent = "{{ _('Selecciona un punto en el mapa.') }}";
-            locateSelectedDistrict();
-        };
-        window.gm_authFailure = function () {
-            mapStatus.textContent = "{{ _('No se pudo cargar Google Maps. Verifica la clave y sus restricciones.') }}";
-        };
-        window.googleMapsLoadFailed = function () {
-            mapStatus.textContent = "{{ _('Google Maps no está disponible. Ingresa las coordenadas del predio manualmente.') }}";
-        };
-
-        if (farmModes.length) {
-            const updateFarmMode = function () {
-                const isNew = document.querySelector('input[name="modo_predio"]:checked').value === "nuevo";
-                farmFields.disabled = !isNew;
-                farmFields.querySelectorAll("[data-new-required]").forEach(function (field) {
-                    field.required = isNew;
-                });
-                document.getElementById("id_predio").required = !isNew;
-            };
-            farmModes.forEach(function (mode) {
-                mode.addEventListener("change", updateFarmMode);
-            });
-            updateFarmMode();
-        }
-        district.addEventListener("change", locateSelectedDistrict);
-
-        latitude.addEventListener("change", function () {
-            if (map && latitude.value && longitude.value) {
-                const point = {
-                    lat: Number(latitude.value),
-                    lng: Number(longitude.value)
-                };
-                map.setCenter(point);
-                map.setZoom(15);
-                marker.setPosition(point);
-                marker.setVisible(true);
-                mapStatus.textContent = `${latitude.value}, ${longitude.value}`;
-            }
-        });
-        longitude.addEventListener("change", function () {
-            latitude.dispatchEvent(new Event("change"));
-        });
 
         product.addEventListener("change", async function () {
             if (!product.value) {
@@ -401,15 +172,4 @@
         });
     })();
 </script>
-{% if google_maps_api_key() %}
-<script async defer
-        src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key()|urlencode }}&callback=initParcelMap"
-        onerror="googleMapsLoadFailed()">
-</script>
-{% else %}
-<script>
-    document.getElementById("map-status").textContent =
-        "{{ _('Google Maps no está configurado. Ingresa las coordenadas del predio manualmente.') }}";
-</script>
-{% endif %}
 {% endblock %}
