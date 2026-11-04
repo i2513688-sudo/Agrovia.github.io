@@ -8,15 +8,28 @@
         <h1>{{ _('Registrar lote') }}</h1>
         <p class="muted">{{ _('Registra el cultivo, el predio y el precio que propones para publicar tu producto.') }}</p>
 
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" data-ubigeo-form
+              data-departamentos-url="{{ url_for('api_ubigeo_departamentos') }}"
+              data-provincias-url="{{ url_for('api_ubigeo_provincias') }}"
+              data-distritos-url="{{ url_for('api_ubigeo_distritos') }}">
             <label for="id_producto">{{ _('Producto') }}</label>
             <select id="id_producto" name="id_producto" required
                     data-quote-url="{{ url_for('api_cotizacion_producto', id_producto=0) }}">
                 <option value="">{{ _('Seleccionar producto') }}</option>
                 {% for p in productos %}
-                <option value="{{ p.id_producto }}">{{ p.nombre }}</option>
+                <option value="{{ p.id_producto }}"
+                        {{ 'selected' if producto_seleccionado|string == p.id_producto|string else '' }}
+                        data-custom-product="{{ 'true' if p.nombre|lower == 'otro' else 'false' }}">
+                    {{ p.nombre }}
+                </option>
                 {% endfor %}
             </select>
+            <div id="custom-product-field" hidden>
+                <label for="nombre_producto_personalizado">{{ _('¿Qué producto quieres publicar?') }}</label>
+                <input id="nombre_producto_personalizado" name="nombre_producto_personalizado"
+                       type="text" maxlength="100" value="{{ nombre_producto_personalizado }}"
+                       placeholder="{{ _('Escribe el nombre del producto') }}">
+            </div>
 
             <section class="quote-panel" aria-live="polite">
                 <h2>{{ _('Cotización del producto') }}</h2>
@@ -39,7 +52,7 @@
                 <select id="id_predio" name="id_predio" required>
                     {% for p in predios %}
                     <option value="{{ p.id_predio }}">
-                        {{ p.nombre_predio }}{% if p.latitud is not none and p.longitud is not none %} · {{ _('Ubicación en mapa guardada') }}{% endif %}
+                        {{ p.nombre_predio }}{% if p.distrito %} · {{ p.distrito }}, {{ p.provincia }}, {{ p.departamento }}{% endif %}{% if p.latitud is not none and p.longitud is not none %} · {{ _('Ubicación en mapa guardada') }}{% endif %}
                     </option>
                     {% endfor %}
                 </select>
@@ -61,6 +74,23 @@
                     <label for="referencia_predio">{{ _('Referencia de ubicación (opcional)') }}</label>
                     <input id="referencia_predio" name="referencia_predio" maxlength="255">
 
+                    <div class="farm-location">
+                        <label for="departamento-predio">{{ _('Departamento') }}</label>
+                        <select id="departamento-predio" data-ubigeo-departamento required>
+                            <option value="">{{ _('Cargando departamentos...') }}</option>
+                        </select>
+                        <label for="provincia-predio">{{ _('Provincia') }}</label>
+                        <select id="provincia-predio" data-ubigeo-provincia required disabled>
+                            <option value="">{{ _('Selecciona primero un departamento') }}</option>
+                        </select>
+                        <label for="distrito-predio">{{ _('Distrito / ciudad') }}</label>
+                        <select id="distrito-predio" data-ubigeo-distrito required disabled>
+                            <option value="">{{ _('Selecciona primero una provincia') }}</option>
+                        </select>
+                        <input type="hidden" name="id_ubigeo" data-ubigeo-id>
+                        <p class="muted" data-ubigeo-status role="status" aria-live="polite"></p>
+                    </div>
+
                     <label for="area_total">{{ _('Área total del predio') }}</label>
                     <div class="farm-area">
                         <input id="area_total" name="area_total" type="number"
@@ -75,6 +105,11 @@
                     <p class="map-help muted" id="map-help">
                         {{ _('Haz clic en el mapa o arrastra el marcador para señalar el predio.') }}
                     </p>
+                    <a id="google-maps-link"
+                       href="https://www.google.com/maps/@-12.0763564,-77.0447285,12z?authuser=0&amp;entry=ttu&amp;g_ep=EgoyMDI2MTEwMS4wIKXMDSoASAFQAw%3D%3D"
+                       target="_blank" rel="noopener noreferrer">
+                        {{ _('Abrir Google Maps') }}
+                    </a>
                     <div id="parcel-map" class="parcel-map" role="application"
                          aria-label="{{ _('Mapa para seleccionar la ubicación del predio') }}"></div>
                     <p id="map-status" class="muted" role="status" aria-live="polite"></p>
@@ -192,6 +227,11 @@
         background: #edf3ee;
     }
 
+    .farm-location label {
+        display: block;
+        margin: 16px 0 6px;
+    }
+
     .coordinate-fields {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
@@ -208,9 +248,12 @@
     }
 </style>
 
+<script src="{{ url_for('static', filename='ubigeos.js') }}"></script>
 <script>
     (function () {
         const product = document.getElementById("id_producto");
+        const customProductField = document.getElementById("custom-product-field");
+        const customProductName = document.getElementById("nombre_producto_personalizado");
         const quoteOutput = document.getElementById("market-quote");
         const quoteTemplate = product.dataset.quoteUrl;
         const farmFields = document.getElementById("new-farm-fields");
@@ -218,24 +261,69 @@
         const latitude = document.getElementById("latitud");
         const longitude = document.getElementById("longitud");
         const mapStatus = document.getElementById("map-status");
+        const googleMapsLink = document.getElementById("google-maps-link");
+        const district = document.getElementById("distrito-predio");
         let map;
         let marker;
+        let geocoder;
+
+        function locateSelectedDistrict() {
+            if (!map || !geocoder || !district.value) {
+                return;
+            }
+            latitude.value = "";
+            longitude.value = "";
+            marker.setVisible(false);
+            const province = document.getElementById("provincia-predio").value;
+            const department = document.getElementById("departamento-predio").value;
+            geocoder.geocode(
+                { address: `${district.value}, ${province}, ${department}, Perú` },
+                function (results, status) {
+                    if (status === "OK" && results[0]) {
+                        map.setCenter(results[0].geometry.location);
+                        map.setZoom(13);
+                        mapStatus.textContent =
+                            "{{ _('Lugar seleccionado. Haz clic en el mapa para marcar el predio exacto.') }}";
+                    } else {
+                        mapStatus.textContent =
+                            "{{ _('No se pudo centrar el mapa en el distrito. Puedes buscar el lugar manualmente en el mapa.') }}";
+                    }
+                }
+            );
+        }
+
+        function updateCustomProductField() {
+            const selectedOption = product.options[product.selectedIndex];
+            const isCustomProduct = selectedOption &&
+                selectedOption.dataset.customProduct === "true";
+            customProductField.hidden = !isCustomProduct;
+            customProductName.required = isCustomProduct;
+            if (!isCustomProduct) {
+                customProductName.value = "";
+            }
+        }
+
+        product.addEventListener("change", updateCustomProductField);
+        updateCustomProductField();
 
         function setCoordinates(lat, lng) {
             latitude.value = Number(lat).toFixed(7);
             longitude.value = Number(lng).toFixed(7);
             mapStatus.textContent = `${latitude.value}, ${longitude.value}`;
+            googleMapsLink.href =
+                `https://www.google.com/maps?q=${latitude.value},${longitude.value}`;
         }
 
         window.initParcelMap = function () {
-            const center = { lat: -9.19, lng: -75.015 };
+            const center = { lat: -12.0763564, lng: -77.0447285 };
             map = new google.maps.Map(document.getElementById("parcel-map"), {
                 center: center,
-                zoom: 5,
+                zoom: 12,
                 mapTypeControl: true,
                 streetViewControl: false,
                 fullscreenControl: true
             });
+            geocoder = new google.maps.Geocoder();
             marker = new google.maps.Marker({ map: map, position: center, draggable: true });
             marker.setVisible(false);
             map.addListener("click", function (event) {
@@ -247,6 +335,7 @@
                 setCoordinates(event.latLng.lat(), event.latLng.lng());
             });
             mapStatus.textContent = "{{ _('Selecciona un punto en el mapa.') }}";
+            locateSelectedDistrict();
         };
         window.gm_authFailure = function () {
             mapStatus.textContent = "{{ _('No se pudo cargar Google Maps. Verifica la clave y sus restricciones.') }}";
@@ -269,6 +358,7 @@
             });
             updateFarmMode();
         }
+        district.addEventListener("change", locateSelectedDistrict);
 
         latitude.addEventListener("change", function () {
             if (map && latitude.value && longitude.value) {

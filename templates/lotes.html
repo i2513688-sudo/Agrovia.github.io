@@ -11,6 +11,13 @@
             <p>{{ _('Productor:') }}
                 <strong><a href="{{ url_for('perfil_productor', id_productor=l.id_productor) }}">{{ l.productor }}</a></strong>
             </p>
+            <p>{{ _('Verificación:') }} {{ _(l.verificacion_productor or 'Pendiente de verificación') }}
+                · {{ _('Reputación:') }}
+                {% if l.reputacion_productor is not none %}{{ l.reputacion_productor }}{% else %}{{ _('Sin calificaciones') }}{% endif %}
+            </p>
+            {% if l.descripcion_producto %}
+            <p>{{ l.descripcion_producto }}</p>
+            {% endif %}
             <p>{{ _('Producción estimada:') }} {{ l.produccion_min or '-' }} - {{ l.produccion_max or '-' }} kg</p>
             <p>{{ _('Precio propuesto por productor:') }}
                 <strong>{% if l.precio_propuesto_kg is not none %}S/ {{ l.precio_propuesto_kg }} / kg{% else %}{{ _('Solicitar cotización') }}{% endif %}</strong>

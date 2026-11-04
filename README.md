@@ -13,6 +13,8 @@ Para habilitar el seguimiento logístico en una base existente, importa una sola
 
 Para habilitar el precio propuesto por productor en una base existente, importa una sola vez `sql/migracion_cotizacion_productor.sql`. En una instalación nueva la columna ya está incluida en `sql/agrovia_v01.sql`. Los productores pueden registrar un lote con un predio existente o crear uno en el mismo formulario; las ubicaciones nuevas se guardan con coordenadas seleccionadas en Google Maps.
 
+Para permitir que los productores indiquen el nombre de un producto fuera del catálogo al seleccionar “Otro”, importa una sola vez `sql/migracion_producto_personalizado.sql` en una base existente. En una instalación nueva, la columna ya está incluida en `sql/agrovia_v01.sql`.
+
 Para habilitar las solicitudes y negociación de cotizaciones entre productores y compradores en una base existente, importa una sola vez `sql/migracion_cotizaciones_comerciales.sql` después de `sql/agrovia_v01.sql`. En una instalación nueva, las tablas ya están incluidas en `sql/agrovia_v01.sql`. El flujo permite buscar lotes y productores, solicitar cotizaciones, intercambiar mensajes y ofertas y confirmar los términos con aceptación de ambas partes; la reserva, logística y pago continúan en el flujo operativo existente.
 
 ## 2. Configurar conexión
@@ -26,7 +28,7 @@ Copiar `.env.example` como `.env` y revisar:
 - OSRM_ROUTING_URL (opcional; instancia OSRM confiable para calcular rutas)
 - GOOGLE_MAPS_API_KEY (necesaria para el mapa interactivo al registrar predios)
 
-Activa Maps JavaScript API en Google Cloud, configura restricciones por sitio web para tu dominio y habilita la facturación requerida por Google. Configura la clave en `GOOGLE_MAPS_API_KEY` dentro de `.env`; es una clave pública de navegador, por lo que debe tener restricciones de dominio y de API. Sin clave, el formulario permite ingresar coordenadas manualmente.
+Activa Maps JavaScript API y Geocoding API en Google Cloud, configura restricciones por sitio web para tu dominio y habilita la facturación requerida por Google. Configura la clave en `GOOGLE_MAPS_API_KEY` dentro de `.env`; es una clave pública de navegador, por lo que debe tener restricciones de dominio y de API. Sin clave, el formulario permite ingresar coordenadas manualmente.
 Genera una clave aleatoria para `SECRET_KEY` con `python -c "import secrets; print(secrets.token_hex(32))"` y no la compartas ni la guardes en el repositorio. En producción define además `APP_ENV=production`, configura el servicio detrás de HTTPS y usa `SESSION_COOKIE_SECURE=true`; la aplicación rechaza iniciar en producción sin una clave de al menos 32 caracteres. El modo de depuración está desactivado.
 
 Los formularios POST incluyen protección CSRF automáticamente. Las cookies de sesión usan `HttpOnly` y `SameSite=Lax`. Mantén la clave secreta privada y reiníciala si se filtra.

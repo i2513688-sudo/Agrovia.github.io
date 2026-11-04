@@ -1303,6 +1303,7 @@ CREATE TABLE `solicitudes_lote` (
   `id_productor` bigint(20) UNSIGNED NOT NULL,
   `id_predio` bigint(20) UNSIGNED NOT NULL,
   `id_producto` int(10) UNSIGNED NOT NULL,
+  `nombre_producto_personalizado` varchar(100) DEFAULT NULL,
   `id_variedad` int(10) UNSIGNED DEFAULT NULL,
   `id_campana` int(10) UNSIGNED DEFAULT NULL,
   `area_cultivada` decimal(10,2) NOT NULL,

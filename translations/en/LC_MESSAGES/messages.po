@@ -544,6 +544,33 @@ msgstr "Enter the farm details and mark its location on the map."
 msgid "Datos del predio nuevo"
 msgstr "New farm details"
 
+msgid "Departamento"
+msgstr "Department"
+
+msgid "Provincia"
+msgstr "Province"
+
+msgid "Distrito / ciudad"
+msgstr "District / city"
+
+msgid "Cargando departamentos..."
+msgstr "Loading departments..."
+
+msgid "Selecciona primero un departamento"
+msgstr "Select a department first"
+
+msgid "Selecciona primero una provincia"
+msgstr "Select a province first"
+
+msgid "Abrir Google Maps"
+msgstr "Open Google Maps"
+
+msgid "Lugar seleccionado. Haz clic en el mapa para marcar el predio exacto."
+msgstr "Location selected. Click the map to mark the exact farm location."
+
+msgid "No se pudo centrar el mapa en el distrito. Puedes buscar el lugar manualmente en el mapa."
+msgstr "The map could not center on this district. You can find the location manually on the map."
+
 msgid "Nombre del predio"
 msgstr "Farm name"
 
@@ -639,6 +666,9 @@ msgstr "Enter the farm area and select its location on the map."
 
 msgid "Revisa los datos del predio, el área cultivada y la ubicación del mapa."
 msgstr "Check the farm details, cultivated area, and map location."
+
+msgid "Selecciona departamento, provincia y distrito."
+msgstr "Select a department, province, and district."
 
 msgid "No hay una referencia de mercado por kg para este producto."
 msgstr "There is no market reference per kg for this product."

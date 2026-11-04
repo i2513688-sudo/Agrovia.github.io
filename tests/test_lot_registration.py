@@ -31,6 +31,7 @@ class LotRegistrationTests(unittest.TestCase):
             "referencia_predio": "A 2 km del pueblo",
             "area_total": "5",
             "unidad_area": "HECTAREA",
+            "id_ubigeo": "1",
             "latitud": "-12.0464",
             "longitud": "-77.0428",
             "area_cultivada": "2",
@@ -48,7 +49,8 @@ class LotRegistrationTests(unittest.TestCase):
         query.side_effect = [
             self.identity(),
             self.producer(),
-            [{"id_producto": 3, "nombre": "Choclo"}],
+            [{"id_producto": 3, "nombre": "Choclo"},
+             {"id_producto": 17, "nombre": "Otro"}],
             [],
         ]
 
@@ -60,6 +62,12 @@ class LotRegistrationTests(unittest.TestCase):
         self.assertIn("precio_propuesto_kg", page)
         self.assertIn("/api/productos/0/cotizacion", page)
         self.assertIn('name="latitud"', page)
+        self.assertIn('name="nombre_producto_personalizado"', page)
+        self.assertIn('data-custom-product="true"', page)
+        self.assertIn('data-ubigeo-departamento', page)
+        self.assertIn('data-ubigeo-provincia', page)
+        self.assertIn('data-ubigeo-distrito', page)
+        self.assertIn("www.google.com/maps/@-12.0763564,-77.0447285,12z", page)
 
     @patch("app.query", return_value=[
         {"nombre_rol": "PRODUCTOR", "codigo_permiso": None}
@@ -83,7 +91,8 @@ class LotRegistrationTests(unittest.TestCase):
             self.producer(),
             [{"id_producto": 3, "nombre": "Choclo"}],
             [],
-            {"id_producto": 3},
+            {"id_producto": 3, "nombre": "Choclo"},
+            {"id_ubigeo": 1},
             None,
             None,
         ]
@@ -98,6 +107,8 @@ class LotRegistrationTests(unittest.TestCase):
         self.assertEqual(execute.call_count, 2)
         self.assertIn("INSERT INTO predios", execute.call_args_list[0].args[0])
         self.assertEqual(execute.call_args_list[0].args[1][1], 7)
+        self.assertIn("id_ubigeo", execute.call_args_list[0].args[0])
+        self.assertEqual(execute.call_args_list[0].args[1][6], 1)
         self.assertIn("precio_propuesto_kg", execute.call_args_list[1].args[0])
         self.assertEqual(execute.call_args_list[1].args[1][5], Decimal("4.25"))
         notify_admins.assert_called_once()
@@ -111,7 +122,7 @@ class LotRegistrationTests(unittest.TestCase):
             self.producer(),
             [{"id_producto": 3, "nombre": "Choclo"}],
             [],
-            {"id_producto": 3},
+            {"id_producto": 3, "nombre": "Choclo"},
         ]
 
         response = self.client.post(
@@ -122,6 +133,99 @@ class LotRegistrationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Revisa los datos del predio", response.get_data(as_text=True))
         execute.assert_not_called()
+
+    @patch("app.registrar_historial_estado")
+    @patch("app.notificar_administradores")
+    @patch("app.execute", side_effect=[101, 202])
+    @patch("app.query")
+    def test_other_product_name_is_saved_on_lot_request(
+        self, query, execute, notify_admins, history
+    ):
+        query.side_effect = [
+            self.identity(),
+            self.producer(),
+            [{"id_producto": 17, "nombre": "Otro"}],
+            [],
+            {"id_producto": 17, "nombre": "Otro"},
+            {"id_ubigeo": 1},
+            None,
+            None,
+        ]
+
+        response = self.client.post(
+            "/solicitar-lote",
+            data=self.valid_submission(
+                id_producto="17",
+                nombre_producto_personalizado="Camote amarillo",
+            ),
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(
+            "nombre_producto_personalizado",
+            execute.call_args_list[1].args[0],
+        )
+        self.assertEqual(execute.call_args_list[1].args[1][-1], "Camote amarillo")
+        notify_admins.assert_called_once()
+        history.assert_called_once()
+
+    @patch("app.execute")
+    @patch("app.query")
+    def test_other_product_requires_a_custom_name(self, query, execute):
+        query.side_effect = [
+            self.identity(),
+            self.producer(),
+            [{"id_producto": 17, "nombre": "Otro"}],
+            [],
+            {"id_producto": 17, "nombre": "Otro"},
+        ]
+
+        response = self.client.post(
+            "/solicitar-lote",
+            data=self.valid_submission(id_producto="17"),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Revisa el producto", response.get_data(as_text=True))
+        self.assertRegex(
+            response.get_data(as_text=True),
+            r'<option value="17"\s+selected',
+        )
+        execute.assert_not_called()
+
+    @patch("app.execute")
+    @patch("app.query")
+    def test_new_farm_requires_a_valid_ubigeo(self, query, execute):
+        query.side_effect = [
+            self.identity(),
+            self.producer(),
+            [{"id_producto": 3, "nombre": "Choclo"}],
+            [],
+            {"id_producto": 3, "nombre": "Choclo"},
+        ]
+
+        response = self.client.post(
+            "/solicitar-lote",
+            data=self.valid_submission(id_ubigeo=""),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Selecciona departamento, provincia y distrito", response.get_data(as_text=True))
+        execute.assert_not_called()
+
+    @patch("app.query", return_value=[
+        {"departamento": "Junín"},
+        {"departamento": "Lima"},
+    ])
+    def test_department_api_lists_active_departments(self, query):
+        response = self.client.get("/api/ubigeos/departamentos")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get_json(),
+            [{"departamento": "Junín"}, {"departamento": "Lima"}],
+        )
+        self.assertIn("SELECT DISTINCT departamento", query.call_args.args[0])
 
     @patch("app.query")
     def test_product_quote_endpoint_returns_latest_market_reference(self, query):

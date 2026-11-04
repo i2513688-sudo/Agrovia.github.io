@@ -22,12 +22,36 @@ class MarketplaceCatalogTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Ajo", response.get_data(as_text=True))
+        page = response.get_data(as_text=True)
+        self.assertIn("Ajo", page)
+        self.assertIn('/lotes?producto=4', page)
         params = query.call_args_list[0].args[1]
         self.assertEqual(
             params,
             ("Junin", "%Junin%", "%ajo%", 2, 2, "Junin")
         )
+
+    @patch("app.query", return_value=[{
+        "id_lote": 8, "id_producto": 4, "producto": "Ajo",
+        "categoria": "Hortalizas", "codigo_lote": "LOT-8",
+        "id_productor": 7, "productor": "Ana Productora",
+        "precio_propuesto_kg": 3.25, "produccion_min": 30,
+        "produccion_max": 50, "verificacion_productor": "VERIFICADO",
+        "reputacion_productor": 4.5, "descripcion_producto": "Ajo fresco",
+        "estado": "DISPONIBLE",
+    }])
+    def test_lot_listing_shows_offer_and_producer_information(self, query):
+        response = self.client.get("/lotes?producto=4")
+        page = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Ajo fresco", page)
+        self.assertIn("Ana Productora", page)
+        self.assertIn("VERIFICADO", page)
+        self.assertIn("4.5", page)
+        self.assertIn("S/ 3.25 / kg", page)
+        self.assertIn("30 - 50 kg", page)
+        self.assertEqual(query.call_args.args[1][-2:], (4, 4))
 
     @patch("app.query")
     def test_lot_page_has_no_search_controls_and_query_filters_still_work(self, query):

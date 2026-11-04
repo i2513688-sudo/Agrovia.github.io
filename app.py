@@ -1525,7 +1525,7 @@ def calcular_cotizacion_lote(id_lote, id_comprador):
             s.id_productor,
             s.id_producto,
             s.area_cultivada,
-            p.nombre AS producto,
+            COALESCE(NULLIF(s.nombre_producto_personalizado, ''), p.nombre) AS producto,
             CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, '')) AS productor
         FROM lotes l
         INNER JOIN solicitudes_lote s
@@ -3251,7 +3251,7 @@ def lotes():
         """
         SELECT
             l.*,
-            p.nombre AS producto,
+            COALESCE(NULLIF(s.nombre_producto_personalizado, ''), p.nombre) AS producto,
             p.id_producto,
             c.nombre AS categoria,
             COALESCE(s.precio_propuesto_kg, NULLIF(l.precio_publicado, 0))
@@ -3340,7 +3340,8 @@ def lotes():
 def detalle_lote(id_lote):
     lote = query(
         """
-        SELECT l.*, p.id_producto, p.nombre AS producto,
+        SELECT l.*, p.id_producto,
+               COALESCE(NULLIF(s.nombre_producto_personalizado, ''), p.nombre) AS producto,
                c.nombre AS categoria,
                s.id_solicitud,
                COALESCE(s.precio_propuesto_kg, NULLIF(l.precio_publicado, 0))
@@ -3409,7 +3410,9 @@ def perfil_productor(id_productor):
         """
         SELECT l.id_lote, l.codigo_lote, l.produccion_min, l.produccion_max,
                l.fecha_cosecha_inicio, l.fecha_cosecha_fin, l.estado,
-               p.id_producto, p.nombre AS producto, c.nombre AS categoria,
+               p.id_producto,
+               COALESCE(NULLIF(s.nombre_producto_personalizado, ''), p.nombre) AS producto,
+               c.nombre AS categoria,
                COALESCE(s.precio_propuesto_kg, NULLIF(l.precio_publicado, 0))
                    AS precio_propuesto_kg,
                pred.nombre_predio,
@@ -3634,6 +3637,18 @@ def api_ubigeo_provincias():
     ))
 
 
+@app.route("/api/ubigeos/departamentos")
+def api_ubigeo_departamentos():
+    return jsonify(query(
+        """
+        SELECT DISTINCT departamento
+        FROM ubigeos
+        WHERE estado = 'ACTIVO'
+        ORDER BY departamento
+        """
+    ))
+
+
 @app.route("/api/ubigeos/distritos")
 def api_ubigeo_distritos():
     departamento = request.args.get("departamento", "").strip()
@@ -3692,11 +3707,12 @@ def solicitar_lote():
 
     predios = query(
         """
-        SELECT *
-        FROM predios
-        WHERE id_productor = %s
-        AND estado = 'ACTIVO'
-        ORDER BY nombre_predio
+        SELECT pred.*, ub.departamento, ub.provincia, ub.distrito
+        FROM predios pred
+        LEFT JOIN ubigeos ub ON ub.id_ubigeo = pred.id_ubigeo
+        WHERE pred.id_productor = %s
+          AND pred.estado = 'ACTIVO'
+        ORDER BY pred.nombre_predio
         """,
         (productor["id_productor"],)
     )
@@ -3705,11 +3721,18 @@ def solicitar_lote():
         return render_template(
             "solicitar_lote.html",
             productos=productos,
-            predios=predios
+            predios=predios,
+            producto_seleccionado=request.form.get("id_producto", ""),
+            nombre_producto_personalizado=request.form.get(
+                "nombre_producto_personalizado", ""
+            ),
         )
 
     if request.method == "POST":
         id_producto = request.form.get("id_producto", type=int)
+        nombre_producto_personalizado = request.form.get(
+            "nombre_producto_personalizado", ""
+        ).strip()
         modo_predio = request.form.get("modo_predio", "nuevo")
         id_predio = request.form.get("id_predio", type=int)
         try:
@@ -3721,7 +3744,7 @@ def solicitar_lote():
 
         producto = query(
             """
-            SELECT id_producto
+            SELECT id_producto, nombre
             FROM productos
             WHERE id_producto = %s AND estado = 'ACTIVO'
             LIMIT 1
@@ -3729,8 +3752,18 @@ def solicitar_lote():
             (id_producto,),
             one=True
         ) if id_producto else None
+        es_otro_producto = (
+            producto and producto["nombre"].strip().casefold() == "otro"
+        )
         if (
             not producto
+            or (
+                es_otro_producto
+                and (
+                    not nombre_producto_personalizado
+                    or len(nombre_producto_personalizado) > 100
+                )
+            )
             or not area.is_finite()
             or area <= 0
             or not precio_propuesto.is_finite()
@@ -3768,6 +3801,7 @@ def solicitar_lote():
             nombre_predio = request.form.get("nombre_predio", "").strip()
             referencia_predio = request.form.get("referencia_predio", "").strip()
             unidad_area = request.form.get("unidad_area", "")
+            id_ubigeo = request.form.get("id_ubigeo", type=int)
             try:
                 area_total = Decimal(request.form.get("area_total", ""))
                 latitud = Decimal(request.form.get("latitud", ""))
@@ -3799,16 +3833,31 @@ def solicitar_lote():
                 flash(_("Revisa los datos del predio, el área cultivada y la ubicación del mapa."), "warning")
                 return mostrar_formulario()
 
+            ubicacion = query(
+                """
+                SELECT id_ubigeo
+                FROM ubigeos
+                WHERE id_ubigeo = %s
+                  AND estado = 'ACTIVO'
+                LIMIT 1
+                """,
+                (id_ubigeo,),
+                one=True
+            ) if id_ubigeo else None
+            if not ubicacion:
+                flash(_("Selecciona departamento, provincia y distrito."), "warning")
+                return mostrar_formulario()
+
             codigo_predio = generar_codigo("PRE", "predios", "codigo_predio")
             id_predio = execute(
                 """
                 INSERT INTO predios
                 (
                     codigo_predio, id_productor, nombre_predio, referencia,
-                    area_total, unidad_area, latitud, longitud,
+                    area_total, unidad_area, id_ubigeo, latitud, longitud,
                     estado_verificacion, estado
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'PENDIENTE', 'ACTIVO')
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'PENDIENTE', 'ACTIVO')
                 """,
                 (
                     codigo_predio,
@@ -3817,6 +3866,7 @@ def solicitar_lote():
                     referencia_predio or None,
                     area_total,
                     unidad_area,
+                    id_ubigeo,
                     latitud,
                     longitud,
                 )
@@ -3830,9 +3880,9 @@ def solicitar_lote():
                 codigo_solicitud, id_productor, id_predio, id_producto,
                 area_cultivada, precio_propuesto_kg, fecha_siembra,
                 fecha_cosecha_estimada_inicio, fecha_cosecha_estimada_fin,
-                descripcion, estado
+                descripcion, nombre_producto_personalizado, estado
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ENVIADA')
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ENVIADA')
             """,
             (
                 codigo,
@@ -3845,6 +3895,7 @@ def solicitar_lote():
                 request.form.get("fecha_cosecha_estimada_inicio") or None,
                 request.form.get("fecha_cosecha_estimada_fin") or None,
                 request.form.get("descripcion", "").strip(),
+                nombre_producto_personalizado if es_otro_producto else None,
             )
         )
 
@@ -3940,7 +3991,7 @@ def mis_solicitudes_lote():
         """
         SELECT s.id_solicitud, s.codigo_solicitud, s.estado,
                s.fecha_solicitud, s.descripcion, s.precio_propuesto_kg,
-               p.nombre AS producto,
+               COALESCE(NULLIF(s.nombre_producto_personalizado, ''), p.nombre) AS producto,
                pred.nombre_predio
         FROM solicitudes_lote s
         INNER JOIN productos p ON p.id_producto = s.id_producto
@@ -4022,7 +4073,7 @@ def admin_solicitudes_lote():
                 COALESCE(u.apellido_paterno,'')
             ) AS productor,
 
-            p.nombre AS producto,
+            COALESCE(NULLIF(s.nombre_producto_personalizado, ''), p.nombre) AS producto,
             pred.nombre_predio
 
         FROM solicitudes_lote s
@@ -6427,7 +6478,8 @@ def mis_cotizaciones_comerciales():
         """
         SELECT c.id_cotizacion_comercial, c.codigo_cotizacion, c.estado,
                c.cantidad_kg, c.precio_unitario_kg, c.fecha_actualizacion,
-               l.codigo_lote, p.nombre AS producto,
+               l.codigo_lote,
+               COALESCE(NULLIF(s.nombre_producto_personalizado, ''), p.nombre) AS producto,
                CONCAT(uc.nombres, ' ', COALESCE(uc.apellido_paterno, '')) AS comprador,
                CONCAT(up.nombres, ' ', COALESCE(up.apellido_paterno, '')) AS productor,
                uc.id_usuario AS id_usuario_comprador,
@@ -6457,7 +6509,7 @@ def ver_cotizacion_comercial(id_cotizacion):
     cotizacion = query(
         """
         SELECT c.*, l.codigo_lote, l.produccion_max, l.estado AS estado_lote,
-               p.nombre AS producto,
+               COALESCE(NULLIF(s.nombre_producto_personalizado, ''), p.nombre) AS producto,
                CONCAT(uc.nombres, ' ', COALESCE(uc.apellido_paterno, '')) AS comprador,
                uc.id_usuario AS id_usuario_comprador,
                CONCAT(up.nombres, ' ', COALESCE(up.apellido_paterno, '')) AS productor,
@@ -6872,7 +6924,7 @@ def generar_cotizacion_lote(id_lote):
     lote = query(
         """
         SELECT l.id_lote, l.estado, l.produccion_max, s.id_productor,
-               p.nombre AS producto,
+               COALESCE(NULLIF(s.nombre_producto_personalizado, ''), p.nombre) AS producto,
                CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, '')) AS productor
         FROM lotes l
         INNER JOIN solicitudes_lote s ON s.id_solicitud = l.id_solicitud

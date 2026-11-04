@@ -26,6 +26,22 @@ document.querySelectorAll("[data-ubigeo-form]").forEach((form) => {
         select.disabled = options.length === 0;
     }
 
+    async function loadDepartments() {
+        try {
+            const options = await fetchOptions(form.dataset.departamentosUrl, {});
+            populate(
+                departamento,
+                options,
+                "Selecciona un departamento",
+                "departamento",
+                "departamento"
+            );
+        } catch (error) {
+            status.textContent =
+                "No se pudieron cargar los departamentos. Actualiza la página e inténtalo de nuevo.";
+        }
+    }
+
     departamento.addEventListener("change", async () => {
         const selectedDepartment = departamento.value;
         reset(provincia, "Selecciona una provincia");
@@ -75,6 +91,7 @@ document.querySelectorAll("[data-ubigeo-form]").forEach((form) => {
     });
 
     form.addEventListener("submit", (event) => {
+        if (departamento.matches(":disabled")) return;
         const direccion = form.querySelector("[data-ubigeo-address]");
         const direccionIngresada = direccion ? Boolean(direccion.value.trim()) : false;
         const esUbigeoInvalido = form.hasAttribute("data-ubigeo-optional")
@@ -89,4 +106,6 @@ document.querySelectorAll("[data-ubigeo-form]").forEach((form) => {
             distrito.focus();
         }
     });
+
+    loadDepartments();
 });
