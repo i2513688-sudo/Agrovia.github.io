@@ -3276,25 +3276,53 @@ def dashboard():
 
 @app.route("/productos")
 def productos():
-
-    products = productos_con_imagen(query(
+    busqueda = request.args.get("buscar", "").strip()[:100]
+    ubicacion = request.args.get("ubicacion", "").strip()[:100]
+    categoria = request.args.get("categoria", type=int)
+    products = query(
         """
         SELECT
             p.*,
-            c.nombre AS categoria
+            c.nombre AS categoria,
+            COALESCE(ofertas.lotes_disponibles, 0) AS lotes_disponibles,
+            ofertas.precio_minimo
         FROM productos p
-
         INNER JOIN categorias_producto c
             ON c.id_categoria = p.id_categoria
-
+        LEFT JOIN (
+            SELECT s.id_producto,
+                   COUNT(DISTINCT l.id_lote) AS lotes_disponibles,
+                   MIN(COALESCE(s.precio_propuesto_kg, l.precio_publicado)) AS precio_minimo
+            FROM lotes l
+            INNER JOIN solicitudes_lote s ON s.id_solicitud = l.id_solicitud
+            INNER JOIN predios pred ON pred.id_predio = s.id_predio
+            LEFT JOIN ubigeos ub ON ub.id_ubigeo = pred.id_ubigeo
+            WHERE l.estado = 'DISPONIBLE'
+              AND (%s = '' OR CONCAT_WS(' ', pred.nombre_predio,
+                    ub.departamento, ub.provincia, ub.distrito) LIKE %s)
+            GROUP BY s.id_producto
+        ) ofertas ON ofertas.id_producto = p.id_producto
         WHERE p.estado = 'ACTIVO'
-
+          AND p.nombre LIKE %s
+          AND (%s IS NULL OR p.id_categoria = %s)
+          AND (%s = '' OR ofertas.id_producto IS NOT NULL)
         ORDER BY p.nombre
-        """
-    ))
+        """,
+        (
+            ubicacion, f"%{ubicacion}%", f"%{busqueda}%",
+            categoria, categoria, ubicacion,
+        )
+    )
+    products = [
+        {
+            **product,
+            "imagen": IMAGENES_PRODUCTOS.get(product["nombre"].strip().casefold()),
+        }
+        for product in products
+    ]
     categories = query(
         """
-        SELECT nombre
+        SELECT id_categoria, nombre
         FROM categorias_producto
         WHERE estado = 'ACTIVO'
         ORDER BY nombre
@@ -3304,7 +3332,10 @@ def productos():
     return render_template(
         "productos.html",
         products=products,
-        categories=categories
+        categories=categories,
+        busqueda=busqueda,
+        categoria=categoria,
+        ubicacion=ubicacion,
     )
 
 
@@ -3315,12 +3346,34 @@ def productos():
 @app.route("/lotes")
 def lotes():
 
+    busqueda = request.args.get("buscar", "").strip()[:100]
+    ubicacion = request.args.get("ubicacion", "").strip()[:100]
+    categoria = request.args.get("categoria", type=int)
+    id_producto = request.args.get("producto", type=int)
     lots = query(
         """
         SELECT
             l.*,
             p.nombre AS producto,
+            p.id_producto,
             c.nombre AS categoria,
+            s.precio_propuesto_kg,
+            s.descripcion AS descripcion_producto,
+            pr.id_productor,
+            pr.reputacion AS reputacion_productor,
+            pr.estado_verificacion AS verificacion_productor,
+            pred.nombre_predio,
+            ub.departamento,
+            ub.provincia,
+            ub.distrito,
+            (
+                SELECT v.estado_cultivo
+                FROM verificaciones v
+                WHERE v.id_solicitud = s.id_solicitud
+                  AND v.estado = 'COMPLETADA'
+                ORDER BY v.fecha_realizada DESC, v.id_verificacion DESC
+                LIMIT 1
+            ) AS calidad_verificada,
 
             CONCAT(
                 u.nombres,
@@ -3344,18 +3397,140 @@ def lotes():
 
         INNER JOIN usuarios u
             ON u.id_usuario = pr.id_usuario
+        INNER JOIN predios pred
+            ON pred.id_predio = s.id_predio
+        LEFT JOIN ubigeos ub
+            ON ub.id_ubigeo = pred.id_ubigeo
 
         WHERE l.estado = 'DISPONIBLE'
+          AND p.estado = 'ACTIVO'
+          AND (
+              %s = ''
+              OR p.nombre LIKE %s
+              OR CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, '')) LIKE %s
+              OR l.codigo_lote LIKE %s
+          )
+          AND (%s IS NULL OR p.id_categoria = %s)
+          AND (%s = '' OR CONCAT_WS(' ', pred.nombre_predio,
+                ub.departamento, ub.provincia, ub.distrito) LIKE %s)
+          AND (%s IS NULL OR p.id_producto = %s)
 
         ORDER BY
             l.fecha_publicacion DESC,
             l.id_lote DESC
         """
+        ,
+        (
+            busqueda, f"%{busqueda}%", f"%{busqueda}%", f"%{busqueda}%",
+            categoria, categoria, ubicacion, f"%{ubicacion}%",
+            id_producto, id_producto,
+        )
     )
 
     return render_template(
         "lotes.html",
-        lots=lots
+        lots=lots,
+        busqueda=busqueda,
+        categories=query(
+            """
+            SELECT id_categoria, nombre
+            FROM categorias_producto
+            WHERE estado = 'ACTIVO'
+            ORDER BY nombre
+            """
+        ),
+        categoria=categoria,
+        ubicacion=ubicacion,
+        id_producto=id_producto,
+    )
+
+
+@app.route("/lotes/<int:id_lote>")
+def detalle_lote(id_lote):
+    lote = query(
+        """
+        SELECT l.*, p.id_producto, p.nombre AS producto,
+               p.descripcion AS descripcion_catalogo, c.nombre AS categoria,
+               s.id_solicitud, s.precio_propuesto_kg, s.descripcion,
+               pr.id_productor, pr.codigo_productor, pr.reputacion,
+               pr.estado_verificacion AS verificacion_productor,
+               pred.nombre_predio, pred.referencia,
+               ub.departamento, ub.provincia, ub.distrito,
+               (
+                   SELECT v.estado_cultivo
+                   FROM verificaciones v
+                   WHERE v.id_solicitud = s.id_solicitud
+                     AND v.estado = 'COMPLETADA'
+                   ORDER BY v.fecha_realizada DESC, v.id_verificacion DESC
+                   LIMIT 1
+               ) AS calidad_verificada,
+               CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, '')) AS productor
+        FROM lotes l
+        INNER JOIN solicitudes_lote s ON s.id_solicitud = l.id_solicitud
+        INNER JOIN productos p ON p.id_producto = s.id_producto
+        INNER JOIN categorias_producto c ON c.id_categoria = p.id_categoria
+        INNER JOIN productores pr ON pr.id_productor = s.id_productor
+        INNER JOIN usuarios u ON u.id_usuario = pr.id_usuario
+        INNER JOIN predios pred ON pred.id_predio = s.id_predio
+        LEFT JOIN ubigeos ub ON ub.id_ubigeo = pred.id_ubigeo
+        WHERE l.id_lote = %s AND p.estado = 'ACTIVO'
+        LIMIT 1
+        """,
+        (id_lote,),
+        one=True,
+    )
+    if not lote:
+        abort(404)
+    return render_template(
+        "detalle_lote.html",
+        lote={
+            **lote,
+            "imagen": IMAGENES_PRODUCTOS.get(lote["producto"].strip().casefold()),
+        },
+    )
+
+
+@app.route("/productores/<int:id_productor>")
+def perfil_productor(id_productor):
+    productor = query(
+        """
+        SELECT pr.id_productor, pr.codigo_productor, pr.reputacion,
+               pr.estado_verificacion,
+               CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, '')) AS nombre
+        FROM productores pr
+        INNER JOIN usuarios u ON u.id_usuario = pr.id_usuario
+        WHERE pr.id_productor = %s AND pr.estado = 'ACTIVO'
+        LIMIT 1
+        """,
+        (id_productor,),
+        one=True,
+    )
+    if not productor:
+        abort(404)
+    lotes_productor = query(
+        """
+        SELECT l.id_lote, l.codigo_lote, l.produccion_min, l.produccion_max,
+               l.fecha_cosecha_inicio, l.fecha_cosecha_fin, l.estado,
+               p.id_producto, p.nombre AS producto, c.nombre AS categoria,
+               s.precio_propuesto_kg, pred.nombre_predio,
+               ub.departamento, ub.provincia, ub.distrito
+        FROM lotes l
+        INNER JOIN solicitudes_lote s ON s.id_solicitud = l.id_solicitud
+        INNER JOIN productos p ON p.id_producto = s.id_producto
+        INNER JOIN categorias_producto c ON c.id_categoria = p.id_categoria
+        INNER JOIN predios pred ON pred.id_predio = s.id_predio
+        LEFT JOIN ubigeos ub ON ub.id_ubigeo = pred.id_ubigeo
+        WHERE s.id_productor = %s
+          AND l.estado = 'DISPONIBLE'
+          AND p.estado = 'ACTIVO'
+        ORDER BY l.fecha_publicacion DESC, l.id_lote DESC
+        """,
+        (id_productor,),
+    )
+    return render_template(
+        "perfil_productor.html",
+        productor=productor,
+        lots=lotes_productor,
     )
 
 
@@ -3411,9 +3586,67 @@ def reservar_lote(id_lote):
         )
         cotizacion = cur.fetchone()
         if not cotizacion:
-            conn.rollback()
-            flash("Genera primero una cotización vigente para este lote.", "warning")
-            return redirect(url_for("lotes"))
+            cur.execute(
+                """
+                SELECT id_cotizacion_comercial, id_lote, id_comprador,
+                       cantidad_kg, precio_unitario_kg
+                FROM cotizaciones_comerciales
+                WHERE id_lote = %s
+                  AND id_comprador = %s
+                  AND estado = 'ACORDADA'
+                LIMIT 1
+                FOR UPDATE
+                """,
+                (id_lote, comprador["id_comprador"])
+            )
+            acuerdo = cur.fetchone()
+            if not acuerdo:
+                conn.rollback()
+                flash(_("Genera primero una cotización vigente para este lote."), "warning")
+                return redirect(url_for("lotes"))
+
+            id_cotizacion_operacion = crear_cotizacion_operativa_acordada(
+                cur, acuerdo
+            )
+            if not id_cotizacion_operacion:
+                conn.rollback()
+                flash(
+                    _("Registra una dirección de entrega activa en Mi cuenta para continuar."),
+                    "warning"
+                )
+                return redirect(url_for(
+                    "ver_cotizacion_comercial",
+                    id_cotizacion=acuerdo["id_cotizacion_comercial"]
+                ))
+
+            cur.execute(
+                """
+                UPDATE cotizaciones_comerciales
+                SET id_cotizacion_operacion = %s, fecha_actualizacion = NOW()
+                WHERE id_cotizacion_comercial = %s
+                  AND estado = 'ACORDADA'
+                """,
+                (id_cotizacion_operacion, acuerdo["id_cotizacion_comercial"])
+            )
+            cur.execute(
+                """
+                SELECT id_cotizacion_operacion, fecha_vencimiento
+                FROM cotizaciones_operacion
+                WHERE id_cotizacion_operacion = %s
+                  AND estado = 'VIGENTE'
+                  AND fecha_vencimiento > NOW()
+                LIMIT 1
+                """,
+                (id_cotizacion_operacion,)
+            )
+            cotizacion = cur.fetchone()
+            if not cotizacion:
+                conn.rollback()
+                flash(_("No se pudo preparar una cotización vigente para la reserva."), "warning")
+                return redirect(url_for(
+                    "ver_cotizacion_comercial",
+                    id_cotizacion=acuerdo["id_cotizacion_comercial"]
+                ))
 
         cur.execute(
             """
@@ -5251,6 +5484,96 @@ def admin_publicaciones():
     )
 
 
+@app.route("/admin/productos", methods=["GET", "POST"])
+@login_required
+def admin_productos():
+    if not es_admin():
+        flash(_("Esta sección es solo para administradores."), "warning")
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST":
+        id_producto = request.form.get("id_producto", type=int)
+        nombre = request.form.get("nombre", "").strip()
+        descripcion = request.form.get("descripcion", "").strip()
+        id_categoria = request.form.get("id_categoria", type=int)
+        estado = request.form.get("estado", "ACTIVO")
+        categoria_valida = query(
+            """
+            SELECT id_categoria
+            FROM categorias_producto
+            WHERE id_categoria = %s AND estado = 'ACTIVO'
+            LIMIT 1
+            """,
+            (id_categoria,),
+            one=True,
+        ) if id_categoria else None
+        if (
+            not nombre or len(nombre) > 100 or len(descripcion) > 255
+            or estado not in {"ACTIVO", "INACTIVO"} or not categoria_valida
+        ):
+            flash(_("Revisa el nombre, la categoría, la descripción y el estado del producto."), "warning")
+            return redirect(url_for("admin_productos"))
+
+        duplicado = query(
+            """
+            SELECT id_producto
+            FROM productos
+            WHERE LOWER(nombre) = LOWER(%s)
+              AND id_producto <> %s
+            LIMIT 1
+            """,
+            (nombre, id_producto or 0),
+            one=True,
+        )
+        if duplicado:
+            flash(_("Ya existe un producto con ese nombre."), "warning")
+            return redirect(url_for("admin_productos"))
+
+        if id_producto:
+            execute(
+                """
+                UPDATE productos
+                SET id_categoria = %s, nombre = %s, descripcion = %s, estado = %s
+                WHERE id_producto = %s
+                """,
+                (id_categoria, nombre, descripcion or None, estado, id_producto),
+            )
+            flash(_("Producto actualizado."), "success")
+        else:
+            execute(
+                """
+                INSERT INTO productos (id_categoria, nombre, descripcion, estado)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (id_categoria, nombre, descripcion or None, estado),
+            )
+            flash(_("Producto creado."), "success")
+        return redirect(url_for("admin_productos"))
+
+    categories = query(
+        """
+        SELECT id_categoria, nombre
+        FROM categorias_producto
+        WHERE estado = 'ACTIVO'
+        ORDER BY nombre
+        """
+    )
+    products = query(
+        """
+        SELECT p.id_producto, p.nombre, p.descripcion, p.estado,
+               p.id_categoria, c.nombre AS categoria
+        FROM productos p
+        INNER JOIN categorias_producto c ON c.id_categoria = p.id_categoria
+        ORDER BY p.nombre
+        """
+    )
+    return render_template(
+        "admin_productos.html",
+        categories=categories,
+        products=products,
+    )
+
+
 @app.route("/admin/referidos", methods=["GET", "POST"])
 @login_required
 def admin_referidos():
@@ -6101,26 +6424,546 @@ def aceptar_cotizacion(id_cotizacion):
     return redirect(url_for("operaciones"))
 
 
+def crear_cotizacion_operativa_acordada(cursor, acuerdo):
+    cursor.execute(
+        """
+        SELECT id_direccion
+        FROM direcciones_entrega
+        WHERE id_comprador = %s AND estado = 'ACTIVO'
+        ORDER BY predeterminada DESC, id_direccion DESC
+        LIMIT 1
+        """,
+        (acuerdo["id_comprador"],)
+    )
+    direccion = cursor.fetchone()
+    if not direccion:
+        return None
+
+    cursor.execute(
+        """
+        SELECT
+            MAX(CASE WHEN codigo = 'COMISION_VENTA_AGROVIA' THEN valor END) AS comision,
+            MAX(CASE WHEN codigo = 'MARGEN_COSECHA_AGROVIA' THEN valor END) AS margen_cosecha,
+            MAX(CASE WHEN codigo = 'MARGEN_TRANSPORTE_AGROVIA' THEN valor END) AS margen_transporte
+        FROM parametros_comerciales
+        WHERE estado = 'ACTIVO'
+          AND codigo IN (
+              'COMISION_VENTA_AGROVIA',
+              'MARGEN_COSECHA_AGROVIA',
+              'MARGEN_TRANSPORTE_AGROVIA'
+          )
+        """
+    )
+    parametros = cursor.fetchone() or {}
+    valor_produccion = (
+        Decimal(str(acuerdo["precio_unitario_kg"]))
+        * Decimal(str(acuerdo["cantidad_kg"]))
+    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    comision_pct = Decimal(str(parametros.get("comision") or 5))
+    margen_cosecha_pct = Decimal(str(parametros.get("margen_cosecha") or 5))
+    margen_transporte_pct = Decimal(str(parametros.get("margen_transporte") or 5))
+    costo_cosecha = (valor_produccion * Decimal("0.08")).quantize(Decimal("0.01"))
+    margen_cosecha = (
+        costo_cosecha * margen_cosecha_pct / Decimal("100")
+    ).quantize(Decimal("0.01"))
+    comision = (
+        valor_produccion * comision_pct / Decimal("100")
+    ).quantize(Decimal("0.01"))
+    total = valor_produccion + costo_cosecha + margen_cosecha + comision
+
+    codigo = f"COT-{secrets.token_hex(8).upper()}"
+    cursor.execute(
+        """
+        INSERT INTO cotizaciones_operacion
+        (
+            codigo_cotizacion, id_lote, id_comprador, id_direccion_entrega,
+            valor_produccion, costo_base_cosecha, margen_cosecha_pct,
+            margen_cosecha_monto, precio_cosecha_cliente,
+            costo_base_flete, margen_transporte_pct, margen_transporte_monto,
+            precio_flete_cliente, comision_venta_pct, comision_venta_monto,
+            ingreso_total_agrovia, total_operacion, fecha_vencimiento, estado
+        )
+        VALUES
+        (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s, 0, 0,
+            %s, %s, %s, %s, DATE_ADD(NOW(), INTERVAL 7 DAY), 'VIGENTE'
+        )
+        """,
+        (
+            codigo, acuerdo["id_lote"], acuerdo["id_comprador"],
+            direccion["id_direccion"], valor_produccion, costo_cosecha,
+            margen_cosecha_pct, margen_cosecha,
+            valor_produccion + costo_cosecha + margen_cosecha,
+            margen_transporte_pct, comision_pct, comision,
+            comision + margen_cosecha, total
+        )
+    )
+    return cursor.lastrowid
+
+
+@app.route("/mis-cotizaciones")
+@login_required
+def mis_cotizaciones_comerciales():
+    if not ({"PRODUCTOR", "COMPRADOR"} & set(session.get("roles", []))):
+        abort(403)
+
+    cotizaciones = query(
+        """
+        SELECT c.id_cotizacion_comercial, c.codigo_cotizacion, c.estado,
+               c.cantidad_kg, c.precio_unitario_kg, c.fecha_actualizacion,
+               l.codigo_lote, p.nombre AS producto,
+               CONCAT(uc.nombres, ' ', COALESCE(uc.apellido_paterno, '')) AS comprador,
+               CONCAT(up.nombres, ' ', COALESCE(up.apellido_paterno, '')) AS productor,
+               uc.id_usuario AS id_usuario_comprador,
+               up.id_usuario AS id_usuario_productor
+        FROM cotizaciones_comerciales c
+        INNER JOIN lotes l ON l.id_lote = c.id_lote
+        INNER JOIN solicitudes_lote s ON s.id_solicitud = l.id_solicitud
+        INNER JOIN productos p ON p.id_producto = s.id_producto
+        INNER JOIN compradores co ON co.id_comprador = c.id_comprador
+        INNER JOIN usuarios uc ON uc.id_usuario = co.id_usuario
+        INNER JOIN productores pr ON pr.id_productor = s.id_productor
+        INNER JOIN usuarios up ON up.id_usuario = pr.id_usuario
+        WHERE uc.id_usuario = %s OR up.id_usuario = %s
+        ORDER BY c.fecha_actualizacion DESC, c.id_cotizacion_comercial DESC
+        """,
+        (session["user_id"], session["user_id"])
+    )
+    return render_template("mis_cotizaciones.html", cotizaciones=cotizaciones)
+
+
+@app.route("/cotizaciones/<int:id_cotizacion>", methods=["GET", "POST"])
+@login_required
+def ver_cotizacion_comercial(id_cotizacion):
+    if not ({"PRODUCTOR", "COMPRADOR"} & set(session.get("roles", []))):
+        abort(403)
+
+    cotizacion = query(
+        """
+        SELECT c.*, l.codigo_lote, l.produccion_max, l.estado AS estado_lote,
+               p.nombre AS producto,
+               CONCAT(uc.nombres, ' ', COALESCE(uc.apellido_paterno, '')) AS comprador,
+               uc.id_usuario AS id_usuario_comprador,
+               CONCAT(up.nombres, ' ', COALESCE(up.apellido_paterno, '')) AS productor,
+               up.id_usuario AS id_usuario_productor
+        FROM cotizaciones_comerciales c
+        INNER JOIN lotes l ON l.id_lote = c.id_lote
+        INNER JOIN solicitudes_lote s ON s.id_solicitud = l.id_solicitud
+        INNER JOIN productos p ON p.id_producto = s.id_producto
+        INNER JOIN compradores co ON co.id_comprador = c.id_comprador
+        INNER JOIN usuarios uc ON uc.id_usuario = co.id_usuario
+        INNER JOIN productores pr ON pr.id_productor = s.id_productor
+        INNER JOIN usuarios up ON up.id_usuario = pr.id_usuario
+        WHERE c.id_cotizacion_comercial = %s
+          AND (uc.id_usuario = %s OR up.id_usuario = %s)
+        LIMIT 1
+        """,
+        (id_cotizacion, session["user_id"], session["user_id"]),
+        one=True
+    )
+    if not cotizacion:
+        abort(404)
+
+    if request.method == "POST":
+        action = request.form.get("accion", "")
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            connection.start_transaction()
+            lote = None
+            if action in {"aceptar", "ofertar", "formalizar"}:
+                cursor.execute(
+                    """
+                    SELECT id_lote
+                    FROM cotizaciones_comerciales
+                    WHERE id_cotizacion_comercial = %s
+                    """,
+                    (id_cotizacion,)
+                )
+                referencia = cursor.fetchone()
+                if not referencia:
+                    abort(404)
+                cursor.execute(
+                    """
+                    SELECT estado, produccion_max
+                    FROM lotes
+                    WHERE id_lote = %s
+                    FOR UPDATE
+                    """,
+                    (referencia["id_lote"],)
+                )
+                lote = cursor.fetchone()
+            cursor.execute(
+                """
+                SELECT *
+                FROM cotizaciones_comerciales
+                WHERE id_cotizacion_comercial = %s
+                FOR UPDATE
+                """,
+                (id_cotizacion,)
+            )
+            actual = cursor.fetchone()
+            if not actual:
+                abort(404)
+            cursor.execute(
+                """
+                SELECT l.produccion_max,
+                       uc.id_usuario AS id_usuario_comprador,
+                       up.id_usuario AS id_usuario_productor
+                FROM cotizaciones_comerciales c
+                INNER JOIN lotes l ON l.id_lote = c.id_lote
+                INNER JOIN compradores co ON co.id_comprador = c.id_comprador
+                INNER JOIN usuarios uc ON uc.id_usuario = co.id_usuario
+                INNER JOIN solicitudes_lote s ON s.id_solicitud = l.id_solicitud
+                INNER JOIN productores pr ON pr.id_productor = s.id_productor
+                INNER JOIN usuarios up ON up.id_usuario = pr.id_usuario
+                WHERE c.id_cotizacion_comercial = %s
+                """,
+                (id_cotizacion,)
+            )
+            participantes = cursor.fetchone()
+            if not participantes:
+                abort(404)
+            actual.update(participantes)
+            if session["user_id"] not in {
+                actual["id_usuario_comprador"],
+                actual["id_usuario_productor"],
+            }:
+                abort(404)
+
+            es_comprador = session["user_id"] == actual["id_usuario_comprador"]
+            rol_actor = "COMPRADOR" if es_comprador else "PRODUCTOR"
+            otro_usuario = (
+                actual["id_usuario_productor"]
+                if es_comprador else actual["id_usuario_comprador"]
+            )
+            estado = actual["estado"]
+            contenido = request.form.get("mensaje", "").strip()
+            notification_message = None
+
+            if action == "mensaje":
+                if estado not in {"PENDIENTE", "NEGOCIACION", "ACORDADA"}:
+                    flash(_("Esta cotización ya está cerrada."), "warning")
+                elif not contenido or len(contenido) > 2000:
+                    flash(_("Escribe un mensaje de hasta 2,000 caracteres."), "warning")
+                else:
+                    cursor.execute(
+                        """
+                        INSERT INTO mensajes_cotizacion_comercial
+                            (id_cotizacion_comercial, id_usuario, tipo, contenido)
+                        VALUES (%s, %s, 'MENSAJE', %s)
+                        """,
+                        (id_cotizacion, session["user_id"], contenido)
+                    )
+                    notification_message = _("Tienes un nuevo mensaje en una cotización.")
+
+            elif action == "ofertar":
+                if estado not in {"PENDIENTE", "NEGOCIACION"}:
+                    flash(_("No se pueden cambiar los términos de una cotización cerrada."), "warning")
+                elif not lote or lote["estado"] != "DISPONIBLE":
+                    flash(_("El lote ya no está disponible para negociar."), "warning")
+                else:
+                    try:
+                        precio = Decimal(request.form.get("precio_unitario_kg", ""))
+                        cantidad = Decimal(request.form.get("cantidad_kg", ""))
+                    except InvalidOperation:
+                        precio = cantidad = Decimal("NaN")
+                    if (
+                        not precio.is_finite() or precio <= 0
+                        or precio > Decimal("99999999.9999")
+                        or not cantidad.is_finite() or cantidad <= 0
+                        or cantidad > Decimal("99999999999.999")
+                        or (actual["produccion_max"] is not None
+                            and cantidad > Decimal(str(actual["produccion_max"])))
+                        or len(contenido) > 2000
+                    ):
+                        flash(_("Indica una cantidad y un precio válidos para la oferta."), "warning")
+                    else:
+                        nueva_version = actual["version"] + 1
+                        accepted_by = (
+                            "aceptacion_comprador_version"
+                            if es_comprador else "aceptacion_productor_version"
+                        )
+                        other_acceptance = (
+                            "aceptacion_productor_version"
+                            if es_comprador else "aceptacion_comprador_version"
+                        )
+                        cursor.execute(
+                            f"""
+                            UPDATE cotizaciones_comerciales
+                            SET precio_unitario_kg = %s, cantidad_kg = %s,
+                                version = %s, ultimo_ofertante = %s,
+                                {accepted_by} = %s, {other_acceptance} = NULL,
+                                estado = 'NEGOCIACION', fecha_actualizacion = NOW()
+                            WHERE id_cotizacion_comercial = %s
+                            """,
+                            (
+                                precio, cantidad, nueva_version, rol_actor,
+                                nueva_version, id_cotizacion
+                            )
+                        )
+                        cursor.execute(
+                            """
+                            INSERT INTO mensajes_cotizacion_comercial
+                                (id_cotizacion_comercial, id_usuario, tipo, contenido,
+                                 precio_unitario_kg, cantidad_kg, version)
+                            VALUES (%s, %s, 'OFERTA', %s, %s, %s, %s)
+                            """,
+                            (
+                                id_cotizacion, session["user_id"],
+                                contenido or _("Nueva propuesta comercial."),
+                                precio, cantidad, nueva_version
+                            )
+                        )
+                        notification_message = _("Recibiste una nueva propuesta comercial.")
+
+            elif action == "aceptar":
+                if estado != "NEGOCIACION" or not actual["precio_unitario_kg"]:
+                    flash(_("Todavía no hay una oferta para aceptar."), "warning")
+                elif actual["ultimo_ofertante"] == rol_actor:
+                    flash(_("La otra parte debe aceptar la propuesta vigente."), "warning")
+                elif not lote or lote["estado"] != "DISPONIBLE":
+                    flash(_("El lote ya no está disponible para acordar."), "warning")
+                elif (
+                    lote["produccion_max"] is not None
+                    and actual["cantidad_kg"] > lote["produccion_max"]
+                ):
+                    flash(
+                        _("La cantidad acordada supera la producción disponible del lote."),
+                        "warning"
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        SELECT id_cotizacion_comercial
+                        FROM cotizaciones_comerciales
+                        WHERE id_lote = %s
+                          AND id_cotizacion_comercial != %s
+                          AND estado = 'ACORDADA'
+                        LIMIT 1
+                        FOR UPDATE
+                        """,
+                        (actual["id_lote"], id_cotizacion)
+                    )
+                    acuerdo_existente = cursor.fetchone()
+                    if acuerdo_existente:
+                        flash(
+                            _("Este lote ya tiene un acuerdo comercial vigente."),
+                            "warning"
+                        )
+                    else:
+                        acceptance = (
+                            "aceptacion_comprador_version"
+                            if es_comprador else "aceptacion_productor_version"
+                        )
+                        other_acceptance_key = (
+                            "aceptacion_productor_version"
+                            if es_comprador else "aceptacion_comprador_version"
+                        )
+                        accepted = (
+                            actual[other_acceptance_key] == actual["version"]
+                        )
+                        new_status = "ACORDADA" if accepted else "NEGOCIACION"
+                        id_cotizacion_operacion = (
+                            crear_cotizacion_operativa_acordada(cursor, actual)
+                            if accepted else actual["id_cotizacion_operacion"]
+                        )
+                        cursor.execute(
+                            f"""
+                            UPDATE cotizaciones_comerciales
+                            SET {acceptance} = %s, estado = %s,
+                                id_cotizacion_operacion = %s,
+                                fecha_actualizacion = NOW()
+                            WHERE id_cotizacion_comercial = %s AND version = %s
+                            """,
+                            (
+                                actual["version"], new_status, id_cotizacion_operacion,
+                                id_cotizacion, actual["version"]
+                            )
+                        )
+                        cursor.execute(
+                            """
+                            INSERT INTO mensajes_cotizacion_comercial
+                                (id_cotizacion_comercial, id_usuario, tipo, contenido, version)
+                            VALUES (%s, %s, 'SISTEMA', %s, %s)
+                            """,
+                            (
+                                id_cotizacion, session["user_id"],
+                                (
+                                    _("La propuesta fue aceptada por ambas partes.")
+                                    if id_cotizacion_operacion
+                                    else (
+                                        _("La propuesta fue aceptada por ambas partes. "
+                                          "El comprador debe registrar una dirección de entrega "
+                                          "para continuar a la reserva.")
+                                    )
+                                )
+                                if accepted else _("Una parte aceptó la propuesta vigente."),
+                                actual["version"]
+                            )
+                        )
+                        notification_message = (
+                            (
+                                _("La cotización fue acordada y está lista para reservar.")
+                                if id_cotizacion_operacion
+                                else _("La cotización fue acordada. Falta registrar la dirección de entrega.")
+                            )
+                            if accepted else _("La otra parte aceptó tu propuesta.")
+                        )
+
+            elif action == "formalizar":
+                if (
+                    not es_comprador
+                    or estado != "ACORDADA"
+                    or actual["id_cotizacion_operacion"]
+                ):
+                    flash(_("No se puede continuar esta cotización."), "warning")
+                elif not lote or lote["estado"] != "DISPONIBLE":
+                    flash(_("El lote ya no está disponible para continuar."), "warning")
+                elif (
+                    lote["produccion_max"] is not None
+                    and actual["cantidad_kg"] > lote["produccion_max"]
+                ):
+                    flash(
+                        _("La cantidad acordada supera la producción disponible del lote."),
+                        "warning"
+                    )
+                else:
+                    id_cotizacion_operacion = crear_cotizacion_operativa_acordada(
+                        cursor, actual
+                    )
+                    if not id_cotizacion_operacion:
+                        flash(
+                            _("Registra una dirección de entrega activa en Mi cuenta para continuar."),
+                            "warning"
+                        )
+                    else:
+                        cursor.execute(
+                            """
+                            UPDATE cotizaciones_comerciales
+                            SET id_cotizacion_operacion = %s,
+                                fecha_actualizacion = NOW()
+                            WHERE id_cotizacion_comercial = %s
+                              AND estado = 'ACORDADA'
+                              AND id_cotizacion_operacion IS NULL
+                            """,
+                            (id_cotizacion_operacion, id_cotizacion)
+                        )
+                        notification_message = (
+                            _("El acuerdo está listo para reservar el lote.")
+                        )
+
+            elif action in {"rechazar", "cancelar"}:
+                if (
+                    (action == "rechazar" and es_comprador)
+                    or (action == "cancelar" and not es_comprador)
+                ):
+                    abort(403)
+                if estado in {"PENDIENTE", "NEGOCIACION"}:
+                    new_status = "RECHAZADA" if action == "rechazar" else "CANCELADA"
+                    cursor.execute(
+                        """
+                        UPDATE cotizaciones_comerciales
+                        SET estado = %s, fecha_actualizacion = NOW()
+                        WHERE id_cotizacion_comercial = %s
+                        """,
+                        (new_status, id_cotizacion)
+                    )
+                    cursor.execute(
+                        """
+                        INSERT INTO mensajes_cotizacion_comercial
+                            (id_cotizacion_comercial, id_usuario, tipo, contenido)
+                        VALUES (%s, %s, 'SISTEMA', %s)
+                        """,
+                        (
+                            id_cotizacion, session["user_id"],
+                            _("La cotización fue rechazada.")
+                            if action == "rechazar"
+                            else _("La solicitud de cotización fue cancelada.")
+                        )
+                    )
+                    notification_message = (
+                        _("La cotización fue rechazada.")
+                        if action == "rechazar"
+                        else _("La solicitud de cotización fue cancelada.")
+                    )
+                else:
+                    flash(_("Esta cotización ya está cerrada."), "warning")
+            else:
+                abort(400)
+
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            cursor.close()
+            connection.close()
+
+        if notification_message:
+            crear_notificacion(
+                otro_usuario,
+                _("Actualización de cotización"),
+                notification_message,
+                "INFO",
+                "COTIZACION_COMERCIAL",
+                id_cotizacion
+            )
+            flash(_("Actualización enviada."), "success")
+        return redirect(url_for(
+            "ver_cotizacion_comercial", id_cotizacion=id_cotizacion
+        ))
+
+    mensajes = query(
+        """
+        SELECT m.id_mensaje, m.id_usuario, m.tipo, m.contenido,
+               m.precio_unitario_kg, m.cantidad_kg, m.version, m.fecha,
+               CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, '')) AS autor
+        FROM mensajes_cotizacion_comercial m
+        INNER JOIN usuarios u ON u.id_usuario = m.id_usuario
+        WHERE m.id_cotizacion_comercial = %s
+        ORDER BY m.fecha ASC, m.id_mensaje ASC
+        """,
+        (id_cotizacion,)
+    )
+    es_comprador = session["user_id"] == cotizacion["id_usuario_comprador"]
+    ya_acepto = (
+        cotizacion["aceptacion_comprador_version"] == cotizacion["version"]
+        if es_comprador
+        else cotizacion["aceptacion_productor_version"] == cotizacion["version"]
+    )
+    return render_template(
+        "detalle_cotizacion.html",
+        cotizacion=cotizacion,
+        mensajes=mensajes,
+        es_comprador=es_comprador,
+        ya_acepto=ya_acepto,
+        id_usuario_actual=session["user_id"]
+    )
+
+
 @app.route("/lotes/<int:id_lote>/cotizar", methods=["POST"])
 @login_required
 def generar_cotizacion_lote(id_lote):
-
     comprador = obtener_comprador_actual()
-
     if not comprador:
-
         flash(
-            "Debes estar registrado como comprador para generar una cotización.",
+            _("Debes estar registrado como comprador para generar una cotización."),
             "warning"
         )
-
         return redirect(url_for("lotes"))
 
     lote = query(
         """
-        SELECT *
-        FROM lotes
-        WHERE id_lote = %s
+        SELECT l.id_lote, l.estado, l.produccion_max, s.id_productor,
+               p.nombre AS producto,
+               CONCAT(u.nombres, ' ', COALESCE(u.apellido_paterno, '')) AS productor
+        FROM lotes l
+        INNER JOIN solicitudes_lote s ON s.id_solicitud = l.id_solicitud
+        INNER JOIN productos p ON p.id_producto = s.id_producto
+        INNER JOIN productores pr ON pr.id_productor = s.id_productor
+        INNER JOIN usuarios u ON u.id_usuario = pr.id_usuario
+        WHERE l.id_lote = %s
         LIMIT 1
         """,
         (id_lote,),
@@ -6128,152 +6971,149 @@ def generar_cotizacion_lote(id_lote):
     )
 
     if not lote:
-        flash("El lote no existe.", "danger")
+        flash(_("El lote no existe."), "danger")
         return redirect(url_for("lotes"))
 
-    if lote["estado"] not in ("DISPONIBLE", "RESERVADO"):
-        flash("Este lote ya no puede cotizarse.", "warning")
+    if lote["estado"] != "DISPONIBLE":
+        flash(_("Este lote ya no puede cotizarse."), "warning")
         return redirect(url_for("lotes"))
 
-    existente = query(
+    cantidad_raw = request.form.get("cantidad_kg", "").strip()
+    mensaje_inicial = request.form.get("mensaje", "").strip()
+    try:
+        cantidad = Decimal(cantidad_raw)
+    except InvalidOperation:
+        flash(_("Indica una cantidad válida en kg."), "warning")
+        return redirect(url_for("lotes"))
+    if (
+        not cantidad.is_finite()
+        or cantidad <= 0
+        or cantidad > Decimal("99999999999.999")
+        or (lote["produccion_max"] is not None
+            and cantidad > Decimal(str(lote["produccion_max"])))
+        or len(mensaje_inicial) > 2000
+    ):
+        flash(_("Revisa la cantidad solicitada y el mensaje (máximo 2,000 caracteres)."), "warning")
+        return redirect(url_for("lotes"))
+
+    productor_usuario = query(
         """
-        SELECT id_cotizacion_operacion
-        FROM cotizaciones_operacion
-        WHERE id_lote = %s
-          AND id_comprador = %s
-          AND estado IN ('VIGENTE', 'ACEPTADA')
+        SELECT id_usuario
+        FROM productores
+        WHERE id_productor = %s AND estado = 'ACTIVO'
         LIMIT 1
         """,
-        (id_lote, comprador["id_comprador"]),
+        (lote["id_productor"],),
         one=True
     )
-
-    if existente:
-        flash("Ya existe una cotización vigente para este lote.", "warning")
+    if not productor_usuario or productor_usuario["id_usuario"] == session["user_id"]:
+        flash(_("No puedes solicitar una cotización de tu propio lote."), "warning")
         return redirect(url_for("lotes"))
 
-    direccion_entrega = query(
-        """
-        SELECT id_direccion
-        FROM direcciones_entrega
-        WHERE id_comprador = %s
-          AND estado = 'ACTIVO'
-        ORDER BY predeterminada DESC, id_direccion DESC
-        LIMIT 1
-        """,
-        (comprador["id_comprador"],),
-        one=True
-    )
-    if not direccion_entrega:
-        flash("Registra primero una dirección de entrega en Mi cuenta.", "warning")
-        return redirect(url_for("cuenta"))
+    connection = get_connection()
+    cursor = connection.cursor()
+    try:
+        connection.start_transaction()
+        cursor.execute(
+            "SELECT estado, produccion_max FROM lotes WHERE id_lote = %s FOR UPDATE",
+            (id_lote,)
+        )
+        lote_bloqueado = cursor.fetchone()
+        if not lote_bloqueado or lote_bloqueado[0] != "DISPONIBLE":
+            connection.rollback()
+            flash(_("El lote ya no está disponible para cotizar."), "warning")
+            return redirect(url_for("lotes"))
+        if (
+            lote_bloqueado[1] is not None
+            and cantidad > Decimal(str(lote_bloqueado[1]))
+        ):
+            connection.rollback()
+            flash(_("La cantidad solicitada supera la producción disponible del lote."), "warning")
+            return redirect(url_for("lotes"))
+        cursor.execute(
+            """
+            SELECT id_cotizacion_comercial
+            FROM cotizaciones_comerciales
+            WHERE id_lote = %s AND id_comprador = %s
+              AND estado IN ('PENDIENTE', 'NEGOCIACION', 'ACORDADA')
+            LIMIT 1
+            FOR UPDATE
+            """,
+            (id_lote, comprador["id_comprador"])
+        )
+        existente = cursor.fetchone()
+        if existente:
+            connection.rollback()
+            flash(_("Ya tienes una cotización abierta para este lote."), "warning")
+            return redirect(url_for(
+                "ver_cotizacion_comercial",
+                id_cotizacion=existente[0]
+            ))
+        cursor.execute(
+            """
+            SELECT id_cotizacion_comercial
+            FROM cotizaciones_comerciales
+            WHERE id_lote = %s AND estado = 'ACORDADA'
+            LIMIT 1
+            FOR UPDATE
+            """,
+            (id_lote,)
+        )
+        acuerdo_existente = cursor.fetchone()
+        if acuerdo_existente:
+            connection.rollback()
+            flash(
+                _("Este lote ya tiene un acuerdo comercial vigente."),
+                "warning"
+            )
+            return redirect(url_for("lotes"))
+        codigo = f"NEG-{secrets.token_hex(8).upper()}"
+        cursor.execute(
+            """
+            INSERT INTO cotizaciones_comerciales
+                (codigo_cotizacion, id_lote, id_comprador, cantidad_kg, estado)
+            VALUES (%s, %s, %s, %s, 'PENDIENTE')
+            """,
+            (codigo, id_lote, comprador["id_comprador"], cantidad)
+        )
+        id_cotizacion = cursor.lastrowid
+        cursor.execute(
+            """
+            INSERT INTO mensajes_cotizacion_comercial
+                (id_cotizacion_comercial, id_usuario, tipo, contenido)
+            VALUES (%s, %s, 'MENSAJE', %s)
+            """,
+            (
+                id_cotizacion,
+                session["user_id"],
+                mensaje_inicial or _("Solicitud de cotización enviada.")
+            )
+        )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        connection.close()
 
-    cotizacion = calcular_cotizacion_lote(id_lote, comprador["id_comprador"])
-
-    if not cotizacion:
-        flash("No se pudo construir la cotización del lote.", "danger")
-        return redirect(url_for("lotes"))
-
-    id_cotizacion = execute(
-        """
-        INSERT INTO cotizaciones_operacion
-        (
-            codigo_cotizacion,
-            id_lote,
-            id_comprador,
-            id_direccion_entrega,
-            valor_produccion,
-            costo_base_cosecha,
-            margen_cosecha_pct,
-            margen_cosecha_monto,
-            precio_cosecha_cliente,
-            costo_base_flete,
-            margen_transporte_pct,
-            margen_transporte_monto,
-            precio_flete_cliente,
-            comision_venta_pct,
-            comision_venta_monto,
-            ingreso_total_agrovia,
-            total_operacion,
-            fecha_vencimiento,
-            estado
-        )
-        VALUES
-        (
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            DATE_ADD(NOW(), INTERVAL 7 DAY),
-            'VIGENTE'
-        )
-        """,
-        (
-            generar_codigo("COT", "cotizaciones_operacion", "codigo_cotizacion"),
-            id_lote,
-            comprador["id_comprador"],
-            direccion_entrega["id_direccion"],
-            cotizacion["valor_produccion"],
-            cotizacion["costo_base_cosecha"],
-            cotizacion["margen_cosecha_pct"],
-            cotizacion["margen_cosecha_monto"],
-            cotizacion["precio_cosecha_cliente"],
-            cotizacion["costo_base_flete"],
-            cotizacion["margen_transporte_pct"],
-            cotizacion["margen_transporte_monto"],
-            cotizacion["precio_flete_cliente"],
-            cotizacion["comision_venta_pct"],
-            cotizacion["comision_venta_monto"],
-            cotizacion["ingreso_total_agrovia"],
-            cotizacion["total_operacion"]
-        )
-    )
-
-    execute(
-        """
-        INSERT INTO cotizaciones_logisticas
-        (
-            codigo_cotizacion,
-            id_cotizacion_operacion,
-            costo_base_flete,
-            margen_agrovia_pct,
-            margen_agrovia_monto,
-            precio_flete_cliente,
-            fecha_calculo
-        )
-        VALUES
-        (
-            %s,
-            %s,
-            0,
-            5,
-            0,
-            0,
-            NOW()
-        )
-        """,
-        (
-            generar_codigo("FLT", "cotizaciones_logisticas", "codigo_cotizacion"),
-            id_cotizacion
-        )
+    crear_notificacion(
+        productor_usuario["id_usuario"],
+        _("Nueva solicitud de cotización"),
+        _("El comprador solicitó cotizar %(quantity)s kg de %(product)s.") % {
+            "quantity": cantidad,
+            "product": lote["producto"],
+        },
+        "INFO",
+        "COTIZACION_COMERCIAL",
+        id_cotizacion
     )
 
-    flash("Cotización generada correctamente y enviada para aprobación del administrador.", "success")
-
-    return redirect(url_for("lotes"))
+    flash(
+        _("Solicitud enviada al productor. Puedes continuar la conversación en Mis cotizaciones."),
+        "success"
+    )
+    return redirect(url_for("ver_cotizacion_comercial", id_cotizacion=id_cotizacion))
 
 
 @app.route("/admin/valorizaciones/<int:id_valorizacion>/calcular", methods=["POST"])

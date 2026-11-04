@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ productor.nombre }} · {{ _('Perfil del productor') }}{% endblock %}
+{% block content %}
+<main class="container producer-profile">
+    <p><a href="{{ url_for('lotes') }}">← {{ _('Volver al catálogo') }}</a></p>
+    <header class="card producer-card">
+        <div class="producer-avatar" aria-hidden="true">🌾</div>
+        <div>
+            <p class="muted">{{ _('Productor agrícola') }} · {{ productor.codigo_productor }}</p>
+            <h1>{{ productor.nombre }}</h1>
+            <p>{{ _('Estado de verificación:') }} <strong>{{ _(productor.estado_verificacion) }}</strong></p>
+            <p>{{ _('Reputación:') }} <strong>{{ productor.reputacion }}</strong></p>
+            <p>{{ _('Consulta sus lotes disponibles y solicita una cotización para conversar sobre calidad, cantidad y condiciones.') }}</p>
+        </div>
+    </header>
+
+    <section>
+        <h2>{{ _('Lotes disponibles de este productor') }}</h2>
+        <div class="producer-lots">
+            {% for lot in lots %}
+            <article class="card">
+                <p class="muted">{{ lot.categoria }} · {{ lot.codigo_lote }}</p>
+                <h3><a href="{{ url_for('detalle_lote', id_lote=lot.id_lote) }}">{{ lot.producto }}</a></h3>
+                <p>{{ _('Precio propuesto:') }}
+                    {% if lot.precio_propuesto_kg is not none %}S/ {{ lot.precio_propuesto_kg }} / kg
+                    {% else %}{{ _('Solicitar cotización') }}{% endif %}
+                </p>
+                <p>{{ _('Cantidad:') }} {{ lot.produccion_min or '-' }}–{{ lot.produccion_max or '-' }} kg</p>
+                <p>{{ _('Ubicación:') }} {{ [lot.distrito, lot.provincia, lot.departamento]|select|join(', ') or _('Ubicación no especificada') }}</p>
+                <a class="btn" href="{{ url_for('detalle_lote', id_lote=lot.id_lote) }}">{{ _('Ver producto y cotizar') }}</a>
+            </article>
+            {% else %}
+            <p class="card">{{ _('Este productor no tiene lotes disponibles por el momento.') }}</p>
+            {% endfor %}
+        </div>
+    </section>
+</main>
+<style>
+    .producer-profile { max-width: 1080px; margin: 28px auto; }
+    .producer-card { display: flex; align-items: center; gap: 22px; margin: 18px 0 30px; padding: 24px; }
+    .producer-card h1 { margin: 4px 0; color: #234832; }
+    .producer-card p { margin: 8px 0; }
+    .producer-avatar { display: grid; flex: 0 0 86px; width: 86px; height: 86px; place-items: center; border-radius: 50%; background: #edf4ed; font-size: 42px; }
+    .producer-lots { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    @media (max-width: 620px) { .producer-card { align-items: flex-start; flex-direction: column; } }
+</style>
+{% endblock %}

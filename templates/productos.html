@@ -25,28 +25,34 @@
     }
 
     .catalogo-filtros {
-        display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        padding: 2px 0 16px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        align-items: end;
+        gap: 12px;
+        margin: 20px 0 24px;
+        padding: 18px;
+        border: 1px solid #e0e7e1;
+        border-radius: 8px;
+        background: #fff;
     }
 
-    .catalogo-filtro {
-        flex: 0 0 auto;
-        padding: 8px 14px;
-        border: 1px solid #d6e1d8;
-        border-radius: 6px;
-        background: #fff;
+    .catalogo-filtros label {
+        display: grid;
+        gap: 6px;
         color: #365441;
         font: inherit;
         font-size: 13px;
-        cursor: pointer;
     }
 
-    .catalogo-filtro.activo {
-        border-color: #287a45;
-        background: #287a45;
-        color: white;
+    .catalogo-filtros input,
+    .catalogo-filtros select {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px;
+        border: 1px solid #d6e1d8;
+        border-radius: 6px;
+        background: white;
+        font: inherit;
     }
 
     .catalogo-grid {
@@ -105,6 +111,25 @@
         line-height: 1.5;
     }
 
+    .producto-meta {
+        display: grid;
+        gap: 6px;
+        margin: 14px 0;
+        color: #365441;
+        font-size: 13px;
+    }
+
+    .producto-acciones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+    }
+
+    .producto-sin-imagen {
+        font-size: 42px;
+    }
+
     .catalogo-vacio {
         grid-column: 1 / -1;
         padding: 28px;
@@ -119,21 +144,41 @@
 <main class="catalogo">
     <header class="catalogo-head">
         <h1>{{ _('Catálogo de productos') }}</h1>
-        <p>{{ _('Explora los productos agrícolas por categoría.') }}</p>
+        <p>{{ _('Explora productos agrícolas y encuentra productores con lotes disponibles.') }}</p>
     </header>
 
-    <nav class="catalogo-filtros" aria-label="{{ _('Filtrar productos por categoría') }}">
-        <button type="button" class="catalogo-filtro activo" data-filter="todas" aria-pressed="true">{{ _('Todos') }}</button>
-        {% for category in categories %}
-        <button type="button" class="catalogo-filtro" data-filter="{{ category.nombre|lower }}" aria-pressed="false">{{ category.nombre }}</button>
-        {% endfor %}
-    </nav>
+    <form method="get" action="{{ url_for('productos') }}" class="catalogo-filtros">
+        <label for="buscar-producto">{{ _('Nombre del producto') }}
+            <input id="buscar-producto" name="buscar" value="{{ busqueda }}"
+                   placeholder="{{ _('Ej. papa') }}">
+        </label>
+        <label for="categoria-producto">{{ _('Categoría') }}
+            <select id="categoria-producto" name="categoria">
+                <option value="">{{ _('Todas las categorías') }}</option>
+                {% for category in categories %}
+                <option value="{{ category.id_categoria }}"
+                        {{ 'selected' if categoria == category.id_categoria else '' }}>
+                    {{ category.nombre }}
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+        <label for="ubicacion-producto">{{ _('Ubicación') }}
+            <input id="ubicacion-producto" name="ubicacion" value="{{ ubicacion }}"
+                   placeholder="{{ _('Departamento, provincia o distrito') }}">
+        </label>
+        <button type="submit" class="btn">{{ _('Buscar productos') }}</button>
+    </form>
 
     <section class="catalogo-grid" aria-live="polite">
         {% for p in products %}
-        <article class="producto-card" id="producto-{{ p.id_producto }}" data-category="{{ p.categoria|lower }}">
+        <article class="producto-card" id="producto-{{ p.id_producto }}">
             <div class="producto-foto">
+                {% if p.imagen %}
                 <img src="{{ url_for('static', filename='img/' ~ p.imagen) }}" alt="{{ p.nombre }}" loading="lazy">
+                {% else %}
+                <span class="producto-sin-imagen" aria-hidden="true">🌿</span>
+                {% endif %}
             </div>
             <div class="producto-info">
                 <div class="producto-categoria">{{ p.categoria }}</div>
@@ -141,6 +186,18 @@
                 {% if p.descripcion and p.descripcion != 'Producto agrícola del piloto' %}
                 <p>{{ p.descripcion }}</p>
                 {% endif %}
+                <div class="producto-meta">
+                    <span>{{ _('Lotes disponibles:') }} {{ p.lotes_disponibles }}</span>
+                    <span>{{ _('Desde:') }}
+                        {% if p.precio_minimo is not none %}S/ {{ p.precio_minimo }} / kg
+                        {% else %}{{ _('Solicitar cotización') }}{% endif %}
+                    </span>
+                </div>
+                <div class="producto-acciones">
+                    <a class="btn" href="{{ url_for('lotes', producto=p.id_producto) }}">
+                        {{ _('Ver ofertas y productores') }}
+                    </a>
+                </div>
             </div>
         </article>
         {% else %}
@@ -148,21 +205,4 @@
         {% endfor %}
     </section>
 </main>
-
-<script>
-    document.querySelectorAll('.catalogo-filtro').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const filter = button.dataset.filter;
-            document.querySelectorAll('.catalogo-filtro').forEach(function (item) {
-                const active = item === button;
-                item.classList.toggle('activo', active);
-                item.setAttribute('aria-pressed', active ? 'true' : 'false');
-            });
-
-            document.querySelectorAll('.producto-card').forEach(function (card) {
-                card.hidden = filter !== 'todas' && card.dataset.category !== filter;
-            });
-        });
-    });
-</script>
 {% endblock %}

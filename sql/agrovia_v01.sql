@@ -3738,6 +3738,45 @@ DROP TABLE IF EXISTS `vw_vehiculos_logistica`;
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_vehiculos_logistica`  AS SELECT `tipos_vehiculo_logistica`.`id_tipo_vehiculo` AS `id_tipo_vehiculo`, `tipos_vehiculo_logistica`.`codigo` AS `codigo`, `tipos_vehiculo_logistica`.`nombre` AS `nombre`, `tipos_vehiculo_logistica`.`configuracion_mtc` AS `configuracion_mtc`, `tipos_vehiculo_logistica`.`capacidad_util_kg` AS `capacidad_util_kg`, `tipos_vehiculo_logistica`.`rendimiento_km_galon` AS `rendimiento_km_galon`, `tipos_vehiculo_logistica`.`costo_operativo_km` AS `costo_operativo_km`, `tipos_vehiculo_logistica`.`costo_fijo_viaje` AS `costo_fijo_viaje`, `tipos_vehiculo_logistica`.`calidad_dato` AS `calidad_dato`, `tipos_vehiculo_logistica`.`fuente_capacidad` AS `fuente_capacidad`, `tipos_vehiculo_logistica`.`fuente_parametros` AS `fuente_parametros` FROM `tipos_vehiculo_logistica` WHERE `tipos_vehiculo_logistica`.`estado` = 'ACTIVO' ;
 
 --
+-- Tablas para cotizaciones y negociación entre productor y comprador
+--
+CREATE TABLE `cotizaciones_comerciales` (
+  `id_cotizacion_comercial` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `codigo_cotizacion` varchar(24) NOT NULL,
+  `id_lote` bigint(20) UNSIGNED NOT NULL,
+  `id_comprador` bigint(20) UNSIGNED NOT NULL,
+  `id_cotizacion_operacion` bigint(20) UNSIGNED DEFAULT NULL,
+  `cantidad_kg` decimal(14,3) NOT NULL,
+  `precio_unitario_kg` decimal(12,4) DEFAULT NULL,
+  `version` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `ultimo_ofertante` enum('COMPRADOR','PRODUCTOR') DEFAULT NULL,
+  `aceptacion_comprador_version` int(10) UNSIGNED DEFAULT NULL,
+  `aceptacion_productor_version` int(10) UNSIGNED DEFAULT NULL,
+  `estado` enum('PENDIENTE','NEGOCIACION','ACORDADA','RECHAZADA','CANCELADA') NOT NULL DEFAULT 'PENDIENTE',
+  `fecha_creacion` datetime NOT NULL DEFAULT current_timestamp(),
+  `fecha_actualizacion` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id_cotizacion_comercial`),
+  UNIQUE KEY `codigo_cotizacion` (`codigo_cotizacion`),
+  KEY `idx_cotizacion_comercial_lote_comprador_estado` (`id_lote`,`id_comprador`,`estado`),
+  KEY `idx_cotizacion_comercial_fecha` (`fecha_actualizacion`,`estado`),
+  KEY `idx_cotizacion_comercial_operacion` (`id_cotizacion_operacion`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `mensajes_cotizacion_comercial` (
+  `id_mensaje` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id_cotizacion_comercial` bigint(20) UNSIGNED NOT NULL,
+  `id_usuario` bigint(20) UNSIGNED NOT NULL,
+  `tipo` enum('MENSAJE','OFERTA','SISTEMA') NOT NULL DEFAULT 'MENSAJE',
+  `contenido` varchar(2000) NOT NULL,
+  `precio_unitario_kg` decimal(12,4) DEFAULT NULL,
+  `cantidad_kg` decimal(14,3) DEFAULT NULL,
+  `version` int(10) UNSIGNED DEFAULT NULL,
+  `fecha` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id_mensaje`),
+  KEY `idx_mensaje_cotizacion_fecha` (`id_cotizacion_comercial`,`fecha`,`id_mensaje`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- Índices para tablas volcadas
 --
 
@@ -4962,6 +5001,18 @@ ALTER TABLE `verificaciones`
   ADD CONSTRAINT `fk_verificacion_solicitud` FOREIGN KEY (`id_solicitud`) REFERENCES `solicitudes_lote` (`id_solicitud`) ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_verificacion_ubigeo` FOREIGN KEY (`id_ubigeo`) REFERENCES `ubigeos` (`id_ubigeo`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_verificacion_usuario` FOREIGN KEY (`id_verificador`) REFERENCES `usuarios` (`id_usuario`) ON UPDATE CASCADE;
+
+--
+-- Relaciones para negociación de cotizaciones
+--
+ALTER TABLE `cotizaciones_comerciales`
+  ADD CONSTRAINT `fk_cotizacion_comercial_lote` FOREIGN KEY (`id_lote`) REFERENCES `lotes` (`id_lote`),
+  ADD CONSTRAINT `fk_cotizacion_comercial_comprador` FOREIGN KEY (`id_comprador`) REFERENCES `compradores` (`id_comprador`),
+  ADD CONSTRAINT `fk_cotizacion_comercial_operacion` FOREIGN KEY (`id_cotizacion_operacion`) REFERENCES `cotizaciones_operacion` (`id_cotizacion_operacion`);
+
+ALTER TABLE `mensajes_cotizacion_comercial`
+  ADD CONSTRAINT `fk_mensaje_cotizacion_comercial` FOREIGN KEY (`id_cotizacion_comercial`) REFERENCES `cotizaciones_comerciales` (`id_cotizacion_comercial`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_mensaje_cotizacion_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

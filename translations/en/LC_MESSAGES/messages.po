@@ -684,3 +684,432 @@ msgstr "Reserve lot"
 
 msgid "No hay lotes registrados."
 msgstr "No lots have been listed."
+
+msgid "Busca productos disponibles y descubre quién los ofrece."
+msgstr "Browse available products and see who is offering them."
+
+msgid "Producto, productor o código de lote"
+msgstr "Product, producer, or lot code"
+
+msgid "Ej. papa o nombre del productor"
+msgstr "E.g. potatoes or a producer's name"
+
+msgid "Buscar"
+msgstr "Search"
+
+msgid "Limpiar"
+msgstr "Clear"
+
+msgid "Producción estimada:"
+msgstr "Estimated production:"
+
+msgid "Precio propuesto por productor:"
+msgstr "Producer's proposed price:"
+
+msgid "Cantidad que necesitas (kg)"
+msgstr "Quantity you need (kg)"
+
+msgid "Mensaje al productor (opcional)"
+msgstr "Message to the producer (optional)"
+
+msgid "Indica calidad, entrega u otras condiciones que necesitas."
+msgstr "Describe the quality, delivery, or other requirements you have."
+
+msgid "Inicia sesión para cotizar"
+msgstr "Sign in to request a quote"
+
+msgid "No hay lotes que coincidan con tu búsqueda."
+msgstr "No lots match your search."
+
+msgid "Cotización"
+msgstr "Quote"
+
+msgid "Mis cotizaciones"
+msgstr "My quotes"
+
+msgid "Cantidad acordada/propuesta:"
+msgstr "Agreed/proposed quantity:"
+
+msgid "Precio unitario:"
+msgstr "Unit price:"
+
+msgid "A la espera de una propuesta"
+msgstr "Waiting for a proposal"
+
+msgid "Acuerdo confirmado por comprador y productor."
+msgstr "The buyer and producer have confirmed the agreement."
+
+msgid "Total acordado por producto:"
+msgstr "Agreed product total:"
+
+msgid "Continuar a la reserva"
+msgstr "Continue to reservation"
+
+msgid "Agregar una dirección de entrega"
+msgstr "Add a delivery address"
+
+msgid "Reservar lote acordado"
+msgstr "Reserve agreed lot"
+
+msgid "El transporte, pago y seguimiento continúan en el flujo habitual de operaciones."
+msgstr "Transport, payment, and tracking continue through the existing operations flow."
+
+msgid "Mensajes y negociación"
+msgstr "Messages and negotiation"
+
+msgid "Propuesta comercial"
+msgstr "Commercial offer"
+
+msgid "Aún no hay mensajes."
+msgstr "There are no messages yet."
+
+msgid "Escribe un mensaje"
+msgstr "Write a message"
+
+msgid "Enviar mensaje"
+msgstr "Send message"
+
+msgid "Enviar o contraofertar"
+msgstr "Make or counter an offer"
+
+msgid "Cantidad (kg)"
+msgstr "Quantity (kg)"
+
+msgid "Nota para la otra parte (opcional)"
+msgstr "Note to the other party (optional)"
+
+msgid "Enviar propuesta"
+msgstr "Send offer"
+
+msgid "Aceptar propuesta vigente"
+msgstr "Accept current offer"
+
+msgid "Cerrar cotización"
+msgstr "Close quote"
+
+msgid "Revisa solicitudes, propuestas y acuerdos con la otra parte."
+msgstr "Review requests, offers, and agreements with the other party."
+
+msgid "Producto / lote"
+msgstr "Product / lot"
+
+msgid "Precio por kg"
+msgstr "Price per kg"
+
+msgid "Pendiente de oferta"
+msgstr "Awaiting offer"
+
+msgid "Acción"
+msgstr "Action"
+
+msgid "Ver conversación"
+msgstr "View conversation"
+
+msgid "Todavía no tienes cotizaciones."
+msgstr "You don't have any quotes yet."
+
+msgid "No se pueden cambiar los términos de una cotización cerrada."
+msgstr "The terms of a closed quote cannot be changed."
+
+msgid "El lote ya no está disponible para negociar."
+msgstr "This lot is no longer available for negotiation."
+
+msgid "Indica una cantidad y un precio válidos para la oferta."
+msgstr "Enter a valid quantity and price for the offer."
+
+msgid "Todavía no hay una oferta para aceptar."
+msgstr "There is no offer to accept yet."
+
+msgid "La otra parte debe aceptar la propuesta vigente."
+msgstr "The other party must accept the current offer."
+
+msgid "El lote ya no está disponible para acordar."
+msgstr "This lot is no longer available to agree on."
+
+msgid "La cantidad acordada supera la producción disponible del lote."
+msgstr "The agreed quantity exceeds the lot's available production."
+
+msgid "Este lote ya tiene un acuerdo comercial vigente."
+msgstr "This lot already has an active commercial agreement."
+
+msgid "No se puede continuar esta cotización."
+msgstr "This quote cannot be continued."
+
+msgid "El lote ya no está disponible para continuar."
+msgstr "This lot is no longer available to continue."
+
+msgid "Registra una dirección de entrega activa en Mi cuenta para continuar."
+msgstr "Add an active delivery address in My Account to continue."
+
+msgid "Esta cotización ya está cerrada."
+msgstr "This quote is already closed."
+
+msgid "Escribe un mensaje de hasta 2,000 caracteres."
+msgstr "Enter a message of up to 2,000 characters."
+
+msgid "Tienes un nuevo mensaje en una cotización."
+msgstr "You have a new message in a quote."
+
+msgid "Nueva propuesta comercial."
+msgstr "New commercial offer."
+
+msgid "Recibiste una nueva propuesta comercial."
+msgstr "You received a new commercial offer."
+
+msgid "Una parte aceptó la propuesta vigente."
+msgstr "One party accepted the current offer."
+
+msgid "La propuesta fue aceptada por ambas partes."
+msgstr "The offer was accepted by both parties."
+
+msgid "La propuesta fue aceptada por ambas partes. El comprador debe registrar una dirección de entrega para continuar a la reserva."
+msgstr "Both parties accepted the offer. The buyer must add a delivery address to continue to reservation."
+
+msgid "La cotización fue acordada y está lista para reservar."
+msgstr "The quote is agreed and ready for reservation."
+
+msgid "La cotización fue acordada. Falta registrar la dirección de entrega."
+msgstr "The quote is agreed. A delivery address still needs to be added."
+
+msgid "La otra parte aceptó tu propuesta."
+msgstr "The other party accepted your offer."
+
+msgid "El acuerdo está listo para reservar el lote."
+msgstr "The agreement is ready to reserve the lot."
+
+msgid "La cotización fue rechazada."
+msgstr "The quote was rejected."
+
+msgid "La solicitud de cotización fue cancelada."
+msgstr "The quote request was cancelled."
+
+msgid "Actualización de cotización"
+msgstr "Quote update"
+
+msgid "Actualización enviada."
+msgstr "Update sent."
+
+msgid "Debes estar registrado como comprador para generar una cotización."
+msgstr "You must be registered as a buyer to request a quote."
+
+msgid "Este lote ya no puede cotizarse."
+msgstr "This lot can no longer be quoted."
+
+msgid "Indica una cantidad válida en kg."
+msgstr "Enter a valid quantity in kg."
+
+msgid "Revisa la cantidad solicitada y el mensaje (máximo 2,000 caracteres)."
+msgstr "Check the requested quantity and message (up to 2,000 characters)."
+
+msgid "No puedes solicitar una cotización de tu propio lote."
+msgstr "You cannot request a quote for your own lot."
+
+msgid "El lote ya no está disponible para cotizar."
+msgstr "This lot is no longer available for quoting."
+
+msgid "La cantidad solicitada supera la producción disponible del lote."
+msgstr "The requested quantity exceeds the lot's available production."
+
+msgid "Ya tienes una cotización abierta para este lote."
+msgstr "You already have an open quote for this lot."
+
+msgid "Solicitud de cotización enviada."
+msgstr "Quote request sent."
+
+msgid "Nueva solicitud de cotización"
+msgstr "New quote request"
+
+msgid "El comprador solicitó cotizar %(quantity)s kg de %(product)s."
+msgstr "The buyer requested a quote for %(quantity)s kg of %(product)s."
+
+msgid "Solicitud enviada al productor. Puedes continuar la conversación en Mis cotizaciones."
+msgstr "Your request was sent to the producer. Continue the conversation in My quotes."
+
+msgid "PENDIENTE"
+msgstr "Pending"
+
+msgid "NEGOCIACION"
+msgstr "Negotiation"
+
+msgid "ACORDADA"
+msgstr "Agreed"
+
+msgid "RECHAZADA"
+msgstr "Rejected"
+
+msgid "CANCELADA"
+msgstr "Cancelled"
+
+msgid "DISPONIBLE"
+msgstr "Available"
+
+msgid "RESERVADO"
+msgstr "Reserved"
+
+msgid "Genera primero una cotización vigente para este lote."
+msgstr "Generate a valid quote for this lot first."
+
+msgid "No se pudo preparar una cotización vigente para la reserva."
+msgstr "A valid quote could not be prepared for the reservation."
+
+msgid "Explora productos agrícolas y encuentra productores con lotes disponibles."
+msgstr "Browse agricultural products and find producers with available lots."
+
+msgid "Nombre del producto"
+msgstr "Product name"
+
+msgid "Ej. papa"
+msgstr "E.g. potato"
+
+msgid "Todas las categorías"
+msgstr "All categories"
+
+msgid "Ubicación"
+msgstr "Location"
+
+msgid "Departamento, provincia o distrito"
+msgstr "Region, province, or district"
+
+msgid "Buscar productos"
+msgstr "Search products"
+
+msgid "Lotes disponibles:"
+msgstr "Available lots:"
+
+msgid "Desde:"
+msgstr "Starting at:"
+
+msgid "Ver ofertas y productores"
+msgstr "View offers and producers"
+
+msgid "Producto o productor"
+msgstr "Product or producer"
+
+msgid "Limpiar filtros"
+msgstr "Clear filters"
+
+msgid "Calidad verificada:"
+msgstr "Verified quality:"
+
+msgid "Pendiente de verificación"
+msgstr "Pending verification"
+
+msgid "Ver detalle del producto"
+msgstr "View product details"
+
+msgid "Detalle del producto"
+msgstr "Product details"
+
+msgid "Volver a ofertas"
+msgstr "Back to offers"
+
+msgid "Precio propuesto"
+msgstr "Proposed price"
+
+msgid "Cantidad disponible"
+msgstr "Available quantity"
+
+msgid "Calidad informada/verificada"
+msgstr "Reported/verified quality"
+
+msgid "Ubicación no especificada"
+msgstr "Location not specified"
+
+msgid "Cosecha estimada"
+msgstr "Estimated harvest"
+
+msgid "Predio:"
+msgstr "Farm:"
+
+msgid "Verificación:"
+msgstr "Verification:"
+
+msgid "Reputación:"
+msgstr "Reputation:"
+
+msgid "Contactar y negociar"
+msgstr "Contact and negotiate"
+
+msgid "Perfil del productor"
+msgstr "Producer profile"
+
+msgid "Volver al catálogo"
+msgstr "Back to catalog"
+
+msgid "Productor agrícola"
+msgstr "Agricultural producer"
+
+msgid "Estado de verificación:"
+msgstr "Verification status:"
+
+msgid "Consulta sus lotes disponibles y solicita una cotización para conversar sobre calidad, cantidad y condiciones."
+msgstr "Browse available lots and request a quote to discuss quality, quantity, and terms."
+
+msgid "Lotes disponibles de este productor"
+msgstr "Available lots from this producer"
+
+msgid "Precio propuesto:"
+msgstr "Proposed price:"
+
+msgid "Cantidad:"
+msgstr "Quantity:"
+
+msgid "Ver producto y cotizar"
+msgstr "View product and request a quote"
+
+msgid "Este productor no tiene lotes disponibles por el momento."
+msgstr "This producer has no available lots at the moment."
+
+msgid "Administrar productos"
+msgstr "Manage products"
+
+msgid "Productos del catálogo"
+msgstr "Catalog products"
+
+msgid "Administra los productos y categorías que pueden ofrecer los productores."
+msgstr "Manage the products and categories producers can offer."
+
+msgid "Gestionar publicaciones"
+msgstr "Manage publications"
+
+msgid "Revisar publicaciones de lotes"
+msgstr "Review lot listings"
+
+msgid "Agregar producto"
+msgstr "Add product"
+
+msgid "Seleccionar categoría"
+msgstr "Select a category"
+
+msgid "Crear producto"
+msgstr "Create product"
+
+msgid "Productos registrados"
+msgstr "Registered products"
+
+msgid "Activo"
+msgstr "Active"
+
+msgid "Inactivo"
+msgstr "Inactive"
+
+msgid "Guardar cambios"
+msgstr "Save changes"
+
+msgid "No hay productos registrados."
+msgstr "No products have been registered."
+
+msgid "Esta sección es solo para administradores."
+msgstr "This section is for administrators only."
+
+msgid "Revisa el nombre, la categoría, la descripción y el estado del producto."
+msgstr "Check the product name, category, description, and status."
+
+msgid "Ya existe un producto con ese nombre."
+msgstr "A product with that name already exists."
+
+msgid "Producto actualizado."
+msgstr "Product updated."
+
+msgid "Producto creado."
+msgstr "Product created."

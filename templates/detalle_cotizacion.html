@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Cotización') }} {{ cotizacion.codigo_cotizacion }}{% endblock %}
+{% block content %}
+<main class="container">
+    <p><a href="{{ url_for('mis_cotizaciones_comerciales') }}">← {{ _('Mis cotizaciones') }}</a></p>
+    <section class="card quote-summary">
+        <h1>{{ _('Cotización') }} {{ cotizacion.codigo_cotizacion }}</h1>
+        <p><strong>{{ cotizacion.producto }}</strong> · {{ _('Lote') }} {{ cotizacion.codigo_lote }}</p>
+        <p>{{ _('Comprador') }}: {{ cotizacion.comprador }} · {{ _('Productor') }}: {{ cotizacion.productor }}</p>
+        <p>{{ _('Cantidad acordada/propuesta:') }} <strong>{{ cotizacion.cantidad_kg }} kg</strong></p>
+        <p>{{ _('Precio unitario:') }}
+            <strong>{% if cotizacion.precio_unitario_kg is not none %}S/ {{ cotizacion.precio_unitario_kg }} / kg{% else %}{{ _('A la espera de una propuesta') }}{% endif %}</strong>
+        </p>
+        {% if cotizacion.estado == 'ACORDADA' %}
+        <p class="agreement">{{ _('Acuerdo confirmado por comprador y productor.') }}<br>
+            {{ _('Total acordado por producto:') }}
+            <strong>S/ {{ '%.2f'|format(cotizacion.precio_unitario_kg * cotizacion.cantidad_kg) }}</strong>
+        </p>
+        {% if es_comprador and not cotizacion.id_cotizacion_operacion %}
+        <form method="post">
+            <input type="hidden" name="accion" value="formalizar">
+            <button type="submit" class="btn">{{ _('Continuar a la reserva') }}</button>
+        </form>
+        <p><a href="{{ url_for('cuenta') }}">{{ _('Agregar una dirección de entrega') }}</a></p>
+        {% elif cotizacion.id_cotizacion_operacion %}
+        <form method="post" action="{{ url_for('reservar_lote', id_lote=cotizacion.id_lote) }}">
+            <button type="submit" class="btn">{{ _('Reservar lote acordado') }}</button>
+        </form>
+        {% endif %}
+        <p class="muted">{{ _('El transporte, pago y seguimiento continúan en el flujo habitual de operaciones.') }}</p>
+        {% endif %}
+        <p><span class="badge">{{ _(cotizacion.estado) }}</span></p>
+    </section>
+
+    <section class="card conversation">
+        <h2>{{ _('Mensajes y negociación') }}</h2>
+        <ol class="message-list">
+            {% for item in mensajes %}
+            <li class="message {% if item.id_usuario == id_usuario_actual %}message-mine{% endif %}">
+                <div class="message-head">
+                    <strong>{{ item.autor if item.tipo != 'SISTEMA' else _('Agrovia') }}</strong>
+                    <small>{{ item.fecha.strftime('%d/%m/%Y %H:%M') if item.fecha.strftime is defined else item.fecha }}</small>
+                </div>
+                {% if item.tipo == 'OFERTA' %}
+                <p class="offer-title">{{ _('Propuesta comercial') }} · {{ item.cantidad_kg }} kg × S/ {{ item.precio_unitario_kg }} / kg</p>
+                {% endif %}
+                <p>{{ item.contenido }}</p>
+            </li>
+            {% else %}
+            <li>{{ _('Aún no hay mensajes.') }}</li>
+            {% endfor %}
+        </ol>
+
+        {% if cotizacion.estado in ('PENDIENTE', 'NEGOCIACION', 'ACORDADA') %}
+        <form method="post" class="conversation-form">
+            <input type="hidden" name="accion" value="mensaje">
+            <label for="mensaje">{{ _('Escribe un mensaje') }}</label>
+            <textarea id="mensaje" name="mensaje" maxlength="2000" rows="3" required></textarea>
+            <button type="submit" class="btn">{{ _('Enviar mensaje') }}</button>
+        </form>
+        {% endif %}
+
+        {% if cotizacion.estado in ('PENDIENTE', 'NEGOCIACION') %}
+        <form method="post" class="offer-form">
+            <input type="hidden" name="accion" value="ofertar">
+            <h3>{{ _('Enviar o contraofertar') }}</h3>
+            <label for="cantidad_kg">{{ _('Cantidad (kg)') }}</label>
+            <input id="cantidad_kg" name="cantidad_kg" type="number" min="0.001" step="0.001"
+                   value="{{ cotizacion.cantidad_kg }}"
+                   {% if cotizacion.produccion_max %}max="{{ cotizacion.produccion_max }}"{% endif %} required>
+            <label for="precio_unitario_kg">{{ _('Precio propuesto (S/ por kg)') }}</label>
+            <input id="precio_unitario_kg" name="precio_unitario_kg" type="number"
+                   min="0.0001" step="0.0001"
+                   value="{{ cotizacion.precio_unitario_kg or '' }}" required>
+            <label for="nota_oferta">{{ _('Nota para la otra parte (opcional)') }}</label>
+            <textarea id="nota_oferta" name="mensaje" maxlength="2000" rows="2"></textarea>
+            <button type="submit" class="btn">{{ _('Enviar propuesta') }}</button>
+        </form>
+
+        <div class="quote-actions">
+            {% if cotizacion.version > 0 and not ya_acepto
+                  and cotizacion.ultimo_ofertante != ('COMPRADOR' if es_comprador else 'PRODUCTOR') %}
+            <form method="post">
+                <input type="hidden" name="accion" value="aceptar">
+                <button type="submit" class="btn">{{ _('Aceptar propuesta vigente') }}</button>
+            </form>
+            {% endif %}
+            <form method="post">
+                <input type="hidden" name="accion" value="{{ 'cancelar' if es_comprador else 'rechazar' }}">
+                <button type="submit" class="btn btn-secondary">{{ _('Cerrar cotización') }}</button>
+            </form>
+        </div>
+        {% endif %}
+    </section>
+</main>
+<style>
+    .quote-summary, .conversation { margin: 20px 0; padding: 22px; }
+    .agreement { padding: 14px; border-radius: 9px; background: #e8f5e9; color: #245b35; }
+    .message-list { display: grid; gap: 12px; list-style: none; padding: 0; }
+    .message { max-width: 760px; padding: 14px; border-radius: 12px; background: #f0f4f0; }
+    .message-mine { margin-left: auto; background: #e6f4e8; }
+    .message-head { display: flex; justify-content: space-between; gap: 16px; }
+    .message p { white-space: pre-wrap; }
+    .offer-title { font-weight: 700; }
+    .conversation-form, .offer-form { display: grid; gap: 10px; margin-top: 20px; }
+    .conversation-form textarea, .offer-form textarea, .offer-form input {
+        width: 100%; box-sizing: border-box; padding: 10px;
+        border: 1px solid #d5dfd6; border-radius: 8px; font: inherit;
+    }
+    .offer-form { padding-top: 18px; border-top: 1px solid #e0e7e1; }
+    .quote-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+</style>
+{% endblock %}

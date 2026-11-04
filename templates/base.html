@@ -2231,6 +2231,7 @@
             <a class="{{ 'active' if request.endpoint == 'mis_solicitudes_lote' else '' }}" href="{{ url_for('mis_solicitudes_lote') }}">{{ _('Mis solicitudes') }}</a>
             {% endif %}
             {% if 'COMPRADOR' in session_roles or 'PRODUCTOR' in session_roles %}
+            <a class="{{ 'active' if request.endpoint in ('mis_cotizaciones_comerciales', 'ver_cotizacion_comercial') else '' }}" href="{{ url_for('mis_cotizaciones_comerciales') }}">{{ _('Mis cotizaciones') }}</a>
             <a class="{{ 'active' if request.endpoint == 'mis_operaciones' else '' }}" href="{{ url_for('mis_operaciones') }}">{{ _('Mis operaciones') }}</a>
             {% endif %}
             {% endif %}
@@ -2567,6 +2568,16 @@
                         <i class="fa-solid fa-newspaper"></i>
                         {{ _('Publicaciones') }}
                     </a>
+
+                    {% if 'ADMINISTRADOR' in session_roles %}
+                    <a
+                        class="admin-link {{ 'active' if request.endpoint == 'admin_productos' else '' }}"
+                        href="{{ url_for('admin_productos') }}"
+                    >
+                        <i class="fa-solid fa-carrot"></i>
+                        {{ _('Productos del catálogo') }}
+                    </a>
+                    {% endif %}
 
                     <a
                         class="admin-link {{ 'active' if request.endpoint == 'admin_campanas_agricolas' else '' }}"

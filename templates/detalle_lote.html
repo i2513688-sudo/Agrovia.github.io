@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ lote.producto }} · {{ _('Detalle del producto') }}{% endblock %}
+{% block content %}
+<main class="container product-detail">
+    <p><a href="{{ url_for('lotes', producto=lote.id_producto) }}">← {{ _('Volver a ofertas') }}</a></p>
+    <section class="card product-detail-card">
+        <div class="product-visual">
+            {% if lote.imagen %}
+            <img src="{{ url_for('static', filename='img/' ~ lote.imagen) }}" alt="{{ lote.producto }}">
+            {% else %}
+            <span aria-hidden="true">🌿</span>
+            {% endif %}
+        </div>
+        <div class="product-data">
+            <p class="category">{{ lote.categoria }}</p>
+            <h1>{{ lote.producto }}</h1>
+            <p>{{ _('Lote') }} {{ lote.codigo_lote }} · {{ _(lote.estado) }}</p>
+            <dl>
+                <dt>{{ _('Precio propuesto') }}</dt>
+                <dd>{% if lote.precio_propuesto_kg is not none %}S/ {{ lote.precio_propuesto_kg }} / kg
+                    {% else %}{{ _('Solicitar cotización') }}{% endif %}</dd>
+                <dt>{{ _('Cantidad disponible') }}</dt>
+                <dd>{{ lote.produccion_min or '-' }}–{{ lote.produccion_max or '-' }} kg</dd>
+                <dt>{{ _('Calidad informada/verificada') }}</dt>
+                <dd>{{ lote.calidad_verificada or lote.estado_cultivo_comercial or _('Pendiente de verificación') }}</dd>
+                <dt>{{ _('Ubicación') }}</dt>
+                <dd>{{ [lote.distrito, lote.provincia, lote.departamento]|select|join(', ') or _('Ubicación no especificada') }}</dd>
+                <dt>{{ _('Cosecha estimada') }}</dt>
+                <dd>{{ lote.fecha_cosecha_inicio or '-' }} {{ _('al') }} {{ lote.fecha_cosecha_fin or '-' }}</dd>
+            </dl>
+            {% if lote.descripcion and lote.descripcion != 'buena calidad' %}
+            <p>{{ lote.descripcion }}</p>
+            {% endif %}
+            <p>
+                {{ _('Predio:') }} {{ lote.nombre_predio }}
+                {% if lote.referencia %}<span class="muted"> · {{ lote.referencia }}</span>{% endif %}
+            </p>
+            <p>
+                {{ _('Productor:') }}
+                <a href="{{ url_for('perfil_productor', id_productor=lote.id_productor) }}">
+                    {{ lote.productor }}
+                </a>
+                · {{ _('Verificación:') }} {{ _(lote.verificacion_productor) }}
+                · {{ _('Reputación:') }} {{ lote.reputacion }}
+            </p>
+
+            {% if lote.estado == 'DISPONIBLE' and session_user and 'COMPRADOR' in session_roles %}
+            <form method="post" action="{{ url_for('generar_cotizacion_lote', id_lote=lote.id_lote) }}" class="quote-form">
+                <h2>{{ _('Solicitar cotización') }}</h2>
+                <label for="cantidad-kg">{{ _('Cantidad que necesitas (kg)') }}</label>
+                <input id="cantidad-kg" name="cantidad_kg" type="number" min="0.001" step="0.001"
+                       {% if lote.produccion_max %}max="{{ lote.produccion_max }}"{% endif %} required>
+                <label for="mensaje-productor">{{ _('Mensaje al productor (opcional)') }}</label>
+                <textarea id="mensaje-productor" name="mensaje" rows="3" maxlength="2000"
+                          placeholder="{{ _('Indica calidad, entrega u otras condiciones que necesitas.') }}"></textarea>
+                <button class="btn" type="submit">{{ _('Contactar y negociar') }}</button>
+            </form>
+            {% elif not session_user and lote.estado == 'DISPONIBLE' %}
+            <a class="btn" href="{{ url_for('login', next=url_for('detalle_lote', id_lote=lote.id_lote)) }}">
+                {{ _('Inicia sesión para cotizar') }}
+            </a>
+            {% endif %}
+        </div>
+    </section>
+</main>
+<style>
+    .product-detail { max-width: 1080px; margin: 28px auto; }
+    .product-detail-card { display: grid; grid-template-columns: minmax(240px, 0.8fr) 1.2fr; gap: 26px; padding: 24px; }
+    .product-visual { display: grid; min-height: 260px; place-items: center; overflow: hidden; border-radius: 10px; background: #edf4ed; font-size: 64px; }
+    .product-visual img { width: 100%; height: 100%; max-height: 440px; object-fit: cover; }
+    .product-data h1 { margin: 4px 0 8px; color: #234832; }
+    .product-data .category { color: #32804a; font-weight: 700; text-transform: uppercase; }
+    .product-data dl { display: grid; grid-template-columns: minmax(140px, 0.7fr) 1fr; gap: 8px 14px; }
+    .product-data dt { color: #647368; }
+    .product-data dd { margin: 0; font-weight: 600; }
+    .quote-form { display: grid; gap: 9px; margin-top: 20px; padding-top: 18px; border-top: 1px solid #e0e7e1; }
+    .quote-form input, .quote-form textarea { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #d5dfd6; border-radius: 8px; font: inherit; }
+    @media (max-width: 720px) { .product-detail-card { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}

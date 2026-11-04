@@ -1,10 +1,88 @@
-{% extends "base.html" %}{% block title %}{{ _('Lotes agrícolas') }}{% endblock %}{% block content %}<main class="container"><h1>{{ _('Lotes agrícolas') }}</h1><div class="grid">{% for l in lots %}<article class="card"><h3>{{ l.producto }}</h3><p><b>{{ l.codigo_lote }}</b></p><p>{{ _('Productor:') }} {{ l.productor }}</p><p>{{ _('Producción:') }} {{ l.produccion_min or '-' }} - {{ l.produccion_max or '-' }}</p><p>{{ _('Precio:') }} <b>S/ {{ l.precio_publicado }}</b></p><p>{{ _('Cosecha:') }} {{ l.fecha_cosecha_inicio or '-' }} {{ _('al') }} {{ l.fecha_cosecha_fin or '-' }}</p><span class="badge">{{ l.estado }}</span>
-{% if session_user and 'COMPRADOR' in session_roles %}
-<form method="POST" action="{{ url_for('generar_cotizacion_lote', id_lote=l.id_lote) }}" style="margin-top: 12px;">
-    <button type="submit" class="btn">{{ _('Generar cotización') }}</button>
-</form>
-<form method="POST" action="{{ url_for('reservar_lote', id_lote=l.id_lote) }}" style="margin-top: 12px;">
-    <button type="submit" class="btn">{{ _('Reservar lote') }}</button>
-</form>
-{% endif %}
- </article>{% else %}<div class="card">{{ _('No hay lotes registrados.') }}</div>{% endfor %}</div></main>{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ _('Lotes agrícolas') }}{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>{{ _('Lotes agrícolas') }}</h1>
+    <p class="muted">{{ _('Busca productos disponibles y descubre quién los ofrece.') }}</p>
+    <form method="get" action="{{ url_for('lotes') }}" class="lot-search">
+        {% if id_producto %}<input type="hidden" name="producto" value="{{ id_producto }}">{% endif %}
+        <div class="lot-filters">
+            <label for="buscar-lotes">{{ _('Producto o productor') }}
+            <input id="buscar-lotes" name="buscar" value="{{ busqueda }}"
+                   placeholder="{{ _('Ej. papa o nombre del productor') }}">
+            </label>
+            <label for="categoria-lotes">{{ _('Categoría') }}
+                <select id="categoria-lotes" name="categoria">
+                    <option value="">{{ _('Todas las categorías') }}</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id_categoria }}"
+                            {{ 'selected' if categoria == category.id_categoria else '' }}>
+                        {{ category.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label for="ubicacion-lotes">{{ _('Ubicación') }}
+                <input id="ubicacion-lotes" name="ubicacion" value="{{ ubicacion }}"
+                       placeholder="{{ _('Departamento, provincia o distrito') }}">
+            </label>
+            <button type="submit" class="btn">{{ _('Buscar') }}</button>
+        </div>
+        {% if busqueda or categoria or ubicacion or id_producto %}
+        <a href="{{ url_for('lotes') }}">{{ _('Limpiar filtros') }}</a>
+        {% endif %}
+    </form>
+
+    <div class="grid">
+        {% for l in lots %}
+        <article class="card">
+            <h2><a href="{{ url_for('detalle_lote', id_lote=l.id_lote) }}">{{ l.producto }}</a></h2>
+            <p><strong>{{ l.codigo_lote }}</strong> · {{ l.categoria }}</p>
+            <p>{{ _('Productor:') }}
+                <strong><a href="{{ url_for('perfil_productor', id_productor=l.id_productor) }}">{{ l.productor }}</a></strong>
+            </p>
+            <p>{{ _('Producción estimada:') }} {{ l.produccion_min or '-' }} - {{ l.produccion_max or '-' }} kg</p>
+            <p>{{ _('Precio propuesto por productor:') }}
+                <strong>{% if l.precio_propuesto_kg is not none %}S/ {{ l.precio_propuesto_kg }} / kg{% else %}{{ _('Solicitar cotización') }}{% endif %}</strong>
+            </p>
+            {% if l.departamento or l.provincia or l.distrito %}
+            <p>{{ _('Ubicación:') }} {{ [l.distrito, l.provincia, l.departamento]|select|join(', ') }}</p>
+            {% endif %}
+            <p>{{ _('Calidad verificada:') }} {{ l.calidad_verificada or _('Pendiente de verificación') }}</p>
+            <p>{{ _('Cosecha:') }} {{ l.fecha_cosecha_inicio or '-' }} {{ _('al') }} {{ l.fecha_cosecha_fin or '-' }}</p>
+            <span class="badge">{{ _(l.estado) }}</span>
+            <p><a class="btn btn-secondary" href="{{ url_for('detalle_lote', id_lote=l.id_lote) }}">{{ _('Ver detalle del producto') }}</a></p>
+            {% if session_user and 'COMPRADOR' in session_roles %}
+            <form method="post" action="{{ url_for('generar_cotizacion_lote', id_lote=l.id_lote) }}" class="quote-request">
+                <label for="cantidad-{{ l.id_lote }}">{{ _('Cantidad que necesitas (kg)') }}</label>
+                <input id="cantidad-{{ l.id_lote }}" name="cantidad_kg" type="number"
+                       min="0.001" step="0.001" value="1"
+                       {% if l.produccion_max %}max="{{ l.produccion_max }}"{% endif %} required>
+                <label for="mensaje-{{ l.id_lote }}">{{ _('Mensaje al productor (opcional)') }}</label>
+                <textarea id="mensaje-{{ l.id_lote }}" name="mensaje" rows="2" maxlength="2000"
+                          placeholder="{{ _('Indica calidad, entrega u otras condiciones que necesitas.') }}"></textarea>
+                <button type="submit" class="btn">{{ _('Solicitar cotización') }}</button>
+            </form>
+            {% elif not session_user %}
+            <a class="btn" href="{{ url_for('login', next=url_for('lotes')) }}">{{ _('Inicia sesión para cotizar') }}</a>
+            {% endif %}
+        </article>
+        {% else %}
+        <div class="card">
+            <p>{{ _('No hay lotes que coincidan con tu búsqueda.') }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</main>
+<style>
+    .lot-search { margin: 20px 0 28px; }
+    .lot-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); align-items: end; gap: 10px; }
+    .lot-filters label { display: grid; gap: 6px; }
+    .lot-search input, .lot-search select, .quote-request input, .quote-request textarea {
+        box-sizing: border-box; width: 100%; padding: 10px;
+        border: 1px solid #d5dfd6; border-radius: 8px; font: inherit;
+    }
+    .quote-request { display: grid; gap: 8px; margin-top: 16px; }
+    .quote-request label { margin-top: 8px; }
+</style>
+{% endblock %}

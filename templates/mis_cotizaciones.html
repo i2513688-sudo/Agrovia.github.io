@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Mis cotizaciones') }}{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>{{ _('Mis cotizaciones') }}</h1>
+    <p class="muted">{{ _('Revisa solicitudes, propuestas y acuerdos con la otra parte.') }}</p>
+    <section class="card">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>{{ _('Cotización') }}</th>
+                        <th>{{ _('Producto / lote') }}</th>
+                        <th>{{ _('Comprador') }}</th>
+                        <th>{{ _('Productor') }}</th>
+                        <th>{{ _('Cantidad') }}</th>
+                        <th>{{ _('Precio por kg') }}</th>
+                        <th>{{ _('Estado') }}</th>
+                        <th>{{ _('Acción') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cotizaciones %}
+                    <tr>
+                        <td>{{ item.codigo_cotizacion }}</td>
+                        <td>{{ item.producto }} · {{ item.codigo_lote }}</td>
+                        <td>{{ item.comprador }}</td>
+                        <td>{{ item.productor }}</td>
+                        <td>{{ item.cantidad_kg }} kg</td>
+                        <td>{% if item.precio_unitario_kg is not none %}S/ {{ item.precio_unitario_kg }}{% else %}{{ _('Pendiente de oferta') }}{% endif %}</td>
+                        <td><span class="badge">{{ _(item.estado) }}</span></td>
+                        <td><a class="btn" href="{{ url_for('ver_cotizacion_comercial', id_cotizacion=item.id_cotizacion_comercial) }}">{{ _('Ver conversación') }}</a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8">{{ _('Todavía no tienes cotizaciones.') }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+{% endblock %}

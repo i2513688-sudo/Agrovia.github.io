@@ -39,6 +39,8 @@
                     <a href="{{ url_for('mis_solicitudes_lote') }}">Ver solicitud</a>
                     {% elif n.entidad_tipo == 'SOLICITUD_LOTE' and 'SOLICITUDES_REVISAR' in session_permissions %}
                     <a href="{{ url_for('admin_solicitudes_lote') }}">Revisar solicitudes</a>
+                    {% elif n.entidad_tipo == 'COTIZACION_COMERCIAL' %}
+                    <a href="{{ url_for('ver_cotizacion_comercial', id_cotizacion=n.entidad_id) }}">Ver cotización</a>
                     {% else %}
                     —
                     {% endif %}

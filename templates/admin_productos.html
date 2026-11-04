@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Administrar productos') }}{% endblock %}
+{% block content %}
+<main class="container admin-products">
+    <h1>{{ _('Productos del catálogo') }}</h1>
+    <p>{{ _('Administra los productos y categorías que pueden ofrecer los productores.') }}</p>
+    <nav class="admin-product-nav">
+        <a class="btn btn-secondary" href="{{ url_for('admin_publicaciones') }}">{{ _('Gestionar publicaciones') }}</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin_solicitudes_lote') }}">{{ _('Revisar publicaciones de lotes') }}</a>
+    </nav>
+
+    <section class="card">
+        <h2>{{ _('Agregar producto') }}</h2>
+        <form method="post" class="product-form">
+            <label>{{ _('Nombre del producto') }}
+                <input name="nombre" maxlength="100" required>
+            </label>
+            <label>{{ _('Categoría') }}
+                <select name="id_categoria" required>
+                    <option value="">{{ _('Seleccionar categoría') }}</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id_categoria }}">{{ category.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>{{ _('Descripción') }}
+                <textarea name="descripcion" maxlength="255" rows="2"></textarea>
+            </label>
+            <input type="hidden" name="estado" value="ACTIVO">
+            <button type="submit" class="btn">{{ _('Crear producto') }}</button>
+        </form>
+    </section>
+
+    <section class="card product-admin-list">
+        <h2>{{ _('Productos registrados') }}</h2>
+        {% for product in products %}
+        <details>
+            <summary>{{ product.nombre }} · {{ product.categoria }} · {{ _(product.estado) }}</summary>
+            <form method="post" class="product-form">
+                <input type="hidden" name="id_producto" value="{{ product.id_producto }}">
+                <label>{{ _('Nombre del producto') }}
+                    <input name="nombre" maxlength="100" value="{{ product.nombre }}" required>
+                </label>
+                <label>{{ _('Categoría') }}
+                    <select name="id_categoria" required>
+                        {% for category in categories %}
+                        <option value="{{ category.id_categoria }}"
+                                {{ 'selected' if product.id_categoria == category.id_categoria else '' }}>
+                            {{ category.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>{{ _('Descripción') }}
+                    <textarea name="descripcion" maxlength="255" rows="2">{{ product.descripcion or '' }}</textarea>
+                </label>
+                <label>{{ _('Estado') }}
+                    <select name="estado">
+                        <option value="ACTIVO" {{ 'selected' if product.estado == 'ACTIVO' else '' }}>{{ _('Activo') }}</option>
+                        <option value="INACTIVO" {{ 'selected' if product.estado == 'INACTIVO' else '' }}>{{ _('Inactivo') }}</option>
+                    </select>
+                </label>
+                <button type="submit" class="btn">{{ _('Guardar cambios') }}</button>
+            </form>
+        </details>
+        {% else %}
+        <p>{{ _('No hay productos registrados.') }}</p>
+        {% endfor %}
+    </section>
+</main>
+<style>
+    .admin-products { max-width: 1000px; margin: 28px auto; }
+    .admin-product-nav { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
+    .product-form { display: grid; gap: 12px; max-width: 700px; }
+    .product-form label { display: grid; gap: 6px; }
+    .product-form input, .product-form select, .product-form textarea {
+        box-sizing: border-box; width: 100%; padding: 10px;
+        border: 1px solid #d5dfd6; border-radius: 8px; font: inherit;
+    }
+    .product-admin-list details { padding: 14px 0; border-bottom: 1px solid #e0e7e1; }
+    .product-admin-list summary { cursor: pointer; font-weight: 700; }
+</style>
+{% endblock %}

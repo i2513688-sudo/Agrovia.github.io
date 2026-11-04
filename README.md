@@ -15,6 +15,8 @@ Para habilitar el Libro de Reclamaciones en una base existente, importa una sola
 
 Para habilitar el precio propuesto por productor en una base existente, importa una sola vez `sql/migracion_cotizacion_productor.sql`. En una instalación nueva la columna ya está incluida en `sql/agrovia_v01.sql`. Los productores pueden registrar un lote con un predio existente o crear uno en el mismo formulario; las ubicaciones nuevas se guardan con coordenadas seleccionadas en Google Maps.
 
+Para habilitar las solicitudes y negociación de cotizaciones entre productores y compradores en una base existente, importa una sola vez `sql/migracion_cotizaciones_comerciales.sql` después de `sql/agrovia_v01.sql`. En una instalación nueva, las tablas ya están incluidas en `sql/agrovia_v01.sql`. El flujo permite buscar lotes y productores, solicitar cotizaciones, intercambiar mensajes y ofertas y confirmar los términos con aceptación de ambas partes; la reserva, logística y pago continúan en el flujo operativo existente.
+
 ## 2. Configurar conexión
 Copiar `.env.example` como `.env` y revisar:
 - DB_HOST
@@ -96,6 +98,7 @@ En las plantillas, marca el texto visible con `{{ _('Texto en español') }}` par
 - Catálogo de productos
 - Predios, direcciones de entrega y direcciones fiscales con selección de ubigeo
 - Lotes publicados
+- Cotizaciones comerciales y mensajería entre productores y compradores
 - Usuarios y roles
 - Operaciones con historial de estados visible para productor y comprador participantes; 5 puntos por participante cuando la operación está completada y ambos la calificaron
 - Dashboard administrativo con métricas de lotes disponibles, operaciones activas, pagos por revisar, cosechas en proceso, entregas pendientes e incidencias abiertas
