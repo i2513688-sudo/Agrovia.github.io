@@ -120,3 +120,13 @@ Las solicitudes de lote y los cambios de verificación se registran en el histor
 
 ## Reportes descargables
 Usuarios con el permiso `REPORTES_VER` pueden abrir **Reportes** desde el panel y descargar operaciones, pagos, productos, productores o entregas en Excel (`.xlsx`) o PDF. Los filtros de fechas son opcionales y el estado solo admite los valores del reporte elegido. Las fechas se aplican a la operación, pago, publicación de lotes, actividad de productores o entrega/asignación de transporte, según el reporte. Los archivos incluyen hasta 50 000 filas; para consultas mayores, delimita el periodo o el estado.
+
+## Desplegar en Railway
+El proyecto incluye `railway.json` para iniciar Flask con Gunicorn en el puerto asignado por Railway. GitHub Pages no ejecuta aplicaciones Flask; usa un proyecto Railway conectado al repositorio `Agrovia_Sistema`.
+
+1. Crea un proyecto Railway desde el repositorio y agrega un servicio MySQL. La base local de XAMPP no será accesible desde Railway salvo que la publiques de forma segura; se recomienda migrar/importar `sql/agrovia_v01.sql` a la base del proyecto Railway.
+2. En las variables del servicio web configura `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD` con los datos privados de la base MySQL de Railway.
+3. Configura `APP_ENV=production`, `SESSION_COOKIE_SECURE=true` y `SECRET_KEY` con un valor aleatorio de al menos 32 caracteres. Define `APP_BASE_URL` con el dominio HTTPS asignado al servicio. Agrega también las variables de servicios que uses, por ejemplo Maps, SMTP, Turnstile y Twilio.
+4. Genera el dominio público de Railway y abre ese dominio, no el enlace de GitHub Pages. No subas `.env` ni secretos a GitHub.
+
+Los archivos que la aplicación recibe se guardan bajo `static/uploads`. El disco del contenedor puede ser efímero; configura un volumen persistente para esa ruta o un almacenamiento de objetos antes de usar cargas en producción. Si habilitas el volumen, migra allí los archivos existentes que deban seguir disponibles.

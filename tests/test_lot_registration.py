@@ -26,14 +26,7 @@ class LotRegistrationTests(unittest.TestCase):
         data = {
             "csrf_token": "test-csrf-token",
             "id_producto": "3",
-            "modo_predio": "nuevo",
-            "nombre_predio": "Parcela Norte",
-            "referencia_predio": "A 2 km del pueblo",
-            "area_total": "5",
-            "unidad_area": "HECTAREA",
-            "id_ubigeo": "1",
-            "latitud": "-12.0464",
-            "longitud": "-77.0428",
+            "id_predio": "4",
             "area_cultivada": "2",
             "precio_propuesto_kg": "4.25",
             "fecha_siembra": "2026-10-01",
@@ -45,29 +38,33 @@ class LotRegistrationTests(unittest.TestCase):
         return data
 
     @patch("app.query")
-    def test_registration_form_includes_map_and_product_quote(self, query):
+    def test_registration_form_only_offers_registered_farms(self, query):
         query.side_effect = [
             self.identity(),
             self.producer(),
             [{"id_producto": 3, "nombre": "Choclo"},
              {"id_producto": 17, "nombre": "Otro"}],
-            [],
+            [{"id_predio": 4, "nombre_predio": "Chacra Jarpa",
+              "area_total": 5, "unidad_area": "HECTAREA"}],
         ]
 
         response = self.client.get("/solicitar-lote")
         page = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn('id="parcel-map"', page)
+        self.assertIn('name="id_predio"', page)
+        self.assertIn("Chacra Jarpa", page)
+        self.assertNotIn("Registrar un predio nuevo aquí", page)
+        self.assertNotIn("Datos del predio nuevo", page)
+        self.assertNotIn("Nombre del predio", page)
+        self.assertNotIn("Referencia de ubicación", page)
+        self.assertNotIn('id="parcel-map"', page)
+        self.assertNotIn('name="latitud"', page)
+        self.assertNotIn("Google Maps", page)
         self.assertIn("precio_propuesto_kg", page)
         self.assertIn("/api/productos/0/cotizacion", page)
-        self.assertIn('name="latitud"', page)
         self.assertIn('name="nombre_producto_personalizado"', page)
         self.assertIn('data-custom-product="true"', page)
-        self.assertIn('data-ubigeo-departamento', page)
-        self.assertIn('data-ubigeo-provincia', page)
-        self.assertIn('data-ubigeo-distrito', page)
-        self.assertIn("www.google.com/maps/@-12.0763564,-77.0447285,12z", page)
 
     @patch("app.query", return_value=[
         {"nombre_rol": "PRODUCTOR", "codigo_permiso": None}
@@ -83,17 +80,17 @@ class LotRegistrationTests(unittest.TestCase):
     @patch("app.notificar_administradores")
     @patch("app.execute", side_effect=[101, 202])
     @patch("app.query")
-    def test_submission_creates_predio_and_saves_proposed_price(
+    def test_submission_uses_registered_predio_and_saves_proposed_price(
         self, query, execute, notify_admins, history
     ):
         query.side_effect = [
             self.identity(),
             self.producer(),
             [{"id_producto": 3, "nombre": "Choclo"}],
-            [],
+            [{"id_predio": 4, "nombre_predio": "Chacra Jarpa",
+              "area_total": 5, "unidad_area": "HECTAREA"}],
             {"id_producto": 3, "nombre": "Choclo"},
-            {"id_ubigeo": 1},
-            None,
+            {"id_predio": 4, "area_total": 5, "unidad_area": "HECTAREA"},
             None,
         ]
 
@@ -104,34 +101,33 @@ class LotRegistrationTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, "/dashboard")
-        self.assertEqual(execute.call_count, 2)
-        self.assertIn("INSERT INTO predios", execute.call_args_list[0].args[0])
-        self.assertEqual(execute.call_args_list[0].args[1][1], 7)
-        self.assertIn("id_ubigeo", execute.call_args_list[0].args[0])
-        self.assertEqual(execute.call_args_list[0].args[1][6], 1)
-        self.assertIn("precio_propuesto_kg", execute.call_args_list[1].args[0])
-        self.assertEqual(execute.call_args_list[1].args[1][5], Decimal("4.25"))
+        execute.assert_called_once()
+        self.assertIn("INSERT INTO solicitudes_lote", execute.call_args.args[0])
+        self.assertEqual(execute.call_args.args[1][2], 4)
+        self.assertEqual(execute.call_args.args[1][5], Decimal("4.25"))
         notify_admins.assert_called_once()
         history.assert_called_once()
 
     @patch("app.execute")
     @patch("app.query")
-    def test_invalid_coordinates_are_rejected_before_writing(self, query, execute):
+    def test_submission_rejects_unregistered_predio(self, query, execute):
         query.side_effect = [
             self.identity(),
             self.producer(),
             [{"id_producto": 3, "nombre": "Choclo"}],
-            [],
+            [{"id_predio": 4, "nombre_predio": "Chacra Jarpa",
+              "area_total": 5, "unidad_area": "HECTAREA"}],
             {"id_producto": 3, "nombre": "Choclo"},
+            None,
         ]
 
         response = self.client.post(
             "/solicitar-lote",
-            data=self.valid_submission(latitud="91"),
+            data=self.valid_submission(id_predio="999"),
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Revisa los datos del predio", response.get_data(as_text=True))
+        self.assertIn("Selecciona un predio activo", response.get_data(as_text=True))
         execute.assert_not_called()
 
     @patch("app.registrar_historial_estado")
@@ -145,10 +141,10 @@ class LotRegistrationTests(unittest.TestCase):
             self.identity(),
             self.producer(),
             [{"id_producto": 17, "nombre": "Otro"}],
-            [],
+            [{"id_predio": 4, "nombre_predio": "Chacra Jarpa",
+              "area_total": 5, "unidad_area": "HECTAREA"}],
             {"id_producto": 17, "nombre": "Otro"},
-            {"id_ubigeo": 1},
-            None,
+            {"id_predio": 4, "area_total": 5, "unidad_area": "HECTAREA"},
             None,
         ]
 
@@ -163,9 +159,9 @@ class LotRegistrationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn(
             "nombre_producto_personalizado",
-            execute.call_args_list[1].args[0],
+            execute.call_args.args[0],
         )
-        self.assertEqual(execute.call_args_list[1].args[1][-1], "Camote amarillo")
+        self.assertEqual(execute.call_args.args[1][-1], "Camote amarillo")
         notify_admins.assert_called_once()
         history.assert_called_once()
 
@@ -195,22 +191,23 @@ class LotRegistrationTests(unittest.TestCase):
 
     @patch("app.execute")
     @patch("app.query")
-    def test_new_farm_requires_a_valid_ubigeo(self, query, execute):
+    def test_submission_requires_registered_predio(self, query, execute):
         query.side_effect = [
             self.identity(),
             self.producer(),
             [{"id_producto": 3, "nombre": "Choclo"}],
-            [],
+            [{"id_predio": 4, "nombre_predio": "Chacra Jarpa",
+              "area_total": 5, "unidad_area": "HECTAREA"}],
             {"id_producto": 3, "nombre": "Choclo"},
         ]
 
         response = self.client.post(
             "/solicitar-lote",
-            data=self.valid_submission(id_ubigeo=""),
+            data=self.valid_submission(id_predio=""),
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Selecciona departamento, provincia y distrito", response.get_data(as_text=True))
+        self.assertIn("Selecciona un predio activo", response.get_data(as_text=True))
         execute.assert_not_called()
 
     @patch("app.query", return_value=[
