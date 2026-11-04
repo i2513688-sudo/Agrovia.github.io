@@ -68,6 +68,13 @@
         border-radius: 8px;
         background: #fff;
         box-shadow: 0 4px 14px rgba(32, 67, 42, 0.06);
+        transition: box-shadow 220ms ease, transform 220ms ease;
+    }
+
+    .producto-card:hover,
+    .producto-card:focus-within {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 24px rgba(32, 67, 42, 0.14);
     }
 
     .producto-foto {
@@ -84,6 +91,26 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
+        transition: transform 350ms ease;
+    }
+
+    .producto-card:hover .producto-foto img,
+    .producto-card:focus-within .producto-foto img {
+        transform: scale(1.06);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .producto-card,
+        .producto-foto img {
+            transition: none;
+        }
+
+        .producto-card:hover,
+        .producto-card:focus-within,
+        .producto-card:hover .producto-foto img,
+        .producto-card:focus-within .producto-foto img {
+            transform: none;
+        }
     }
 
     .producto-info {
@@ -124,10 +151,6 @@
         flex-wrap: wrap;
         gap: 8px;
         margin-top: 14px;
-    }
-
-    .producto-sin-imagen {
-        font-size: 42px;
     }
 
     .catalogo-vacio {
@@ -174,11 +197,7 @@
         {% for p in products %}
         <article class="producto-card" id="producto-{{ p.id_producto }}">
             <div class="producto-foto">
-                {% if p.imagen %}
                 <img src="{{ url_for('static', filename='img/' ~ p.imagen) }}" alt="{{ p.nombre }}" loading="lazy">
-                {% else %}
-                <span class="producto-sin-imagen" aria-hidden="true">🌿</span>
-                {% endif %}
             </div>
             <div class="producto-info">
                 <div class="producto-categoria">{{ p.categoria }}</div>

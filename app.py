@@ -3216,13 +3216,7 @@ def productos():
             categoria, categoria, ubicacion,
         )
     )
-    products = [
-        {
-            **product,
-            "imagen": IMAGENES_PRODUCTOS.get(product["nombre"].strip().casefold()),
-        }
-        for product in products
-    ]
+    products = productos_con_imagen(products)
     categories = query(
         """
         SELECT id_categoria, nombre
@@ -3339,18 +3333,6 @@ def lotes():
     return render_template(
         "lotes.html",
         lots=lots,
-        busqueda=busqueda,
-        categories=query(
-            """
-            SELECT id_categoria, nombre
-            FROM categorias_producto
-            WHERE estado = 'ACTIVO'
-            ORDER BY nombre
-            """
-        ),
-        categoria=categoria,
-        ubicacion=ubicacion,
-        id_producto=id_producto,
     )
 
 

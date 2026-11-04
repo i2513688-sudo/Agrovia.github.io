@@ -125,7 +125,7 @@ class CommercialQuoteTests(unittest.TestCase):
         }
 
     @patch("app.query", return_value=[])
-    def test_lot_search_is_available_in_english(self, query):
+    def test_lot_search_controls_are_not_shown_in_english(self, query):
         with self.client.session_transaction() as user_session:
             user_session["idioma"] = "en"
 
@@ -133,10 +133,11 @@ class CommercialQuoteTests(unittest.TestCase):
         page = response.get_data(as_text=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Browse available products and see who is offering them.", page)
-        self.assertIn("Product or producer", page)
-        self.assertIn("Category", page)
-        self.assertIn("Location", page)
+        self.assertIn("Agricultural lots", page)
+        self.assertNotIn("Product or producer", page)
+        self.assertNotIn("Category", page)
+        self.assertNotIn("Location", page)
+        self.assertNotIn('name="buscar"', page)
         self.assertEqual(
             query.call_args_list[0].args[1],
             (

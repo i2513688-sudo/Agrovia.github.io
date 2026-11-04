@@ -41,7 +41,7 @@ class ProductCatalogImageTests(unittest.TestCase):
             [{"nombre": "Hortalizas"}, {"nombre": "Granos"}],
         ],
     )
-    def test_catalog_shows_products_with_and_without_images(self, query):
+    def test_catalog_hides_products_without_images(self, query):
         flask_app.config["TESTING"] = True
         response = flask_app.test_client().get("/productos")
         page = response.get_data(as_text=True)
@@ -49,11 +49,14 @@ class ProductCatalogImageTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         for image in ("ajo.png", "apio.png", "col.png", "lechuga.png", "quinua.png"):
             self.assertIn(f"img/{image}", page)
-        self.assertIn(">Olluco<", page)
-        self.assertIn('class="producto-sin-imagen"', page)
+        self.assertNotIn(">Olluco<", page)
+        self.assertNotIn('class="producto-sin-imagen"', page)
         self.assertNotIn("Producto agrícola del piloto", page)
-        self.assertEqual(page.count('class="producto-card"'), 6)
+        self.assertEqual(page.count('class="producto-card"'), 5)
         self.assertIn('id="producto-1"', page)
+        self.assertIn(".producto-card:hover .producto-foto img", page)
+        self.assertIn("transition: transform 350ms ease", page)
+        self.assertIn("prefers-reduced-motion: reduce", page)
 
 
 if __name__ == "__main__":

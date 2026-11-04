@@ -3,36 +3,6 @@
 {% block content %}
 <main class="container">
     <h1>{{ _('Lotes agrícolas') }}</h1>
-    <p class="muted">{{ _('Busca productos disponibles y descubre quién los ofrece.') }}</p>
-    <form method="get" action="{{ url_for('lotes') }}" class="lot-search">
-        {% if id_producto %}<input type="hidden" name="producto" value="{{ id_producto }}">{% endif %}
-        <div class="lot-filters">
-            <label for="buscar-lotes">{{ _('Producto o productor') }}
-            <input id="buscar-lotes" name="buscar" value="{{ busqueda }}"
-                   placeholder="{{ _('Ej. papa o nombre del productor') }}">
-            </label>
-            <label for="categoria-lotes">{{ _('Categoría') }}
-                <select id="categoria-lotes" name="categoria">
-                    <option value="">{{ _('Todas las categorías') }}</option>
-                    {% for category in categories %}
-                    <option value="{{ category.id_categoria }}"
-                            {{ 'selected' if categoria == category.id_categoria else '' }}>
-                        {{ category.nombre }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </label>
-            <label for="ubicacion-lotes">{{ _('Ubicación') }}
-                <input id="ubicacion-lotes" name="ubicacion" value="{{ ubicacion }}"
-                       placeholder="{{ _('Departamento, provincia o distrito') }}">
-            </label>
-            <button type="submit" class="btn">{{ _('Buscar') }}</button>
-        </div>
-        {% if busqueda or categoria or ubicacion or id_producto %}
-        <a href="{{ url_for('lotes') }}">{{ _('Limpiar filtros') }}</a>
-        {% endif %}
-    </form>
-
     <div class="grid">
         {% for l in lots %}
         <article class="card">
@@ -69,16 +39,13 @@
         </article>
         {% else %}
         <div class="card">
-            <p>{{ _('No hay lotes que coincidan con tu búsqueda.') }}</p>
+            <p>{{ _('No hay lotes disponibles por el momento.') }}</p>
         </div>
         {% endfor %}
     </div>
 </main>
 <style>
-    .lot-search { margin: 20px 0 28px; }
-    .lot-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); align-items: end; gap: 10px; }
-    .lot-filters label { display: grid; gap: 6px; }
-    .lot-search input, .lot-search select, .quote-request input, .quote-request textarea {
+    .quote-request input, .quote-request textarea {
         box-sizing: border-box; width: 100%; padding: 10px;
         border: 1px solid #d5dfd6; border-radius: 8px; font: inherit;
     }

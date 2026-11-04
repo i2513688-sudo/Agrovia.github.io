@@ -30,18 +30,20 @@ class MarketplaceCatalogTests(unittest.TestCase):
         )
 
     @patch("app.query")
-    def test_lot_search_can_filter_category_and_location(self, query):
-        query.side_effect = [
-            [],
-            [{"id_categoria": 2, "nombre": "Hortalizas"}],
-        ]
+    def test_lot_page_has_no_search_controls_and_query_filters_still_work(self, query):
+        query.return_value = []
 
         response = self.client.get(
             "/lotes?buscar=ajo&categoria=2&ubicacion=Junin"
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn('name="ubicacion"', response.get_data(as_text=True))
+        page = response.get_data(as_text=True)
+        self.assertNotIn("Producto o productor", page)
+        self.assertNotIn('name="buscar"', page)
+        self.assertNotIn('name="categoria"', page)
+        self.assertNotIn('name="ubicacion"', page)
+        self.assertNotIn("Departamento, provincia o distrito", page)
         params = query.call_args_list[0].args[1]
         self.assertEqual(
             params,
