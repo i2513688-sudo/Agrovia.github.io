@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Administrar referidos{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Administrar referidos</h1>
+    <div class="table-container"><table class="table"><thead><tr><th>Código</th><th>Referidor</th><th>Referido</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
+        {% for item in referidos %}<tr><td>{{ item.codigo_utilizado }}</td><td>{{ item.referidor }}</td><td>{{ item.referido }}</td><td>{{ item.fecha }}</td><td>{{ item.estado }}</td><td>
+            {% if item.estado == 'REGISTRADO' %}<form method="post"><input type="hidden" name="action" value="validar"><input type="hidden" name="id_referido" value="{{ item.id_referido }}"><button class="btn" type="submit">Validar</button></form>
+            {% elif item.estado == 'VALIDADO' %}<form method="post"><input type="hidden" name="action" value="bonificar"><input type="hidden" name="id_referido" value="{{ item.id_referido }}"><label>Puntos<input type="number" name="puntos" min="1" required></label><button class="btn" type="submit">Bonificar</button></form>{% else %}Procesado{% endif %}
+        </td></tr>{% else %}<tr><td colspan="6">No hay referidos registrados.</td></tr>{% endfor %}
+    </tbody></table></div>
+</main>
+{% endblock %}

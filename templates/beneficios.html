@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Puntos y beneficios{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Puntos y beneficios</h1>
+    <section class="card"><h2>Saldo disponible: {{ saldo }} puntos</h2><p><a href="{{ url_for('mis_referidos') }}">Ver mis referidos</a></p></section>
+    <section class="card"><h2>Beneficios disponibles</h2><div class="grid">
+        {% for item in beneficios %}<article class="card"><h3>{{ item.nombre }}</h3><p>{{ item.descripcion or '' }}</p><p>{{ item.puntos_requeridos }} puntos · {{ item.stock if item.stock is not none else 'Stock ilimitado' }}</p>
+            <form method="post"><input type="hidden" name="id_beneficio" value="{{ item.id_beneficio }}"><button class="btn" type="submit">Solicitar canje</button></form></article>
+        {% else %}<p>No hay beneficios disponibles para tu cuenta.</p>{% endfor %}
+    </div></section>
+    <section class="card"><h2>Historial de canjes</h2><div class="table-container"><table class="table"><thead><tr><th>Beneficio</th><th>Puntos</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>{% for item in canjes %}<tr><td>{{ item.beneficio }}</td><td>{{ item.puntos_utilizados }}</td><td>{{ item.fecha }}</td><td>{{ item.estado }}</td></tr>{% else %}<tr><td colspan="4">Aún no tienes canjes.</td></tr>{% endfor %}</tbody></table></div></section>
+    <section class="card"><h2>Movimientos de puntos</h2><div class="table-container"><table class="table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Puntos</th><th>Motivo</th></tr></thead><tbody>{% for item in movimientos %}<tr><td>{{ item.fecha }}</td><td>{{ item.tipo }}</td><td>{{ item.puntos }}</td><td>{{ item.motivo }}</td></tr>{% else %}<tr><td colspan="4">No hay movimientos de puntos.</td></tr>{% endfor %}</tbody></table></div></section>
+</main>
+{% endblock %}

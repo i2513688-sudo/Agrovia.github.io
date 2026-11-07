@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Auditoría del sistema{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Auditoría del sistema</h1>
+    <p class="muted">Últimos 200 eventos registrados.</p>
+    <div class="table-container"><table class="table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Entidad</th><th>Registro</th><th>Detalle</th></tr></thead><tbody>
+        {% for item in registros %}<tr><td>{{ item.fecha_hora }}</td><td>{{ item.usuario or 'Sistema' }}</td><td>{{ item.accion }}</td><td>{{ item.modulo }} · {{ item.entidad_tipo }}</td><td>{{ item.entidad_id or '-' }}</td><td>Anterior: {{ item.valor_anterior or '-' }}<br>Nuevo: {{ item.valor_nuevo or '-' }}</td></tr>
+        {% else %}<tr><td colspan="6">No hay eventos de auditoría.</td></tr>{% endfor %}
+    </tbody></table></div>
+</main>
+{% endblock %}

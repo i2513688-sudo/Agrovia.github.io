@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Valorizaciones{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Valorizaciones de lotes</h1>
+    <div class="table-container">
+        <table class="table">
+            <thead><tr><th>Código</th><th>Solicitud</th><th>Productor</th><th>Producto</th><th>Predio</th><th>Precio base</th><th>Precio ajustado</th><th>Producción estimada</th><th>Valor del lote</th><th>Modo</th><th>Estado</th><th>Fecha</th></tr></thead>
+            <tbody>
+                {% for item in valorizaciones %}
+                <tr>
+                    <td>{{ item.codigo_valorizacion }}</td><td>{{ item.codigo_solicitud }}</td><td>{{ item.productor }}</td><td>{{ item.producto }}</td><td>{{ item.nombre_predio }}</td>
+                    <td>S/ {{ item.precio_base }}</td><td>S/ {{ item.precio_ajustado }}</td><td>{{ item.produccion_estimada }}</td><td>S/ {{ item.valor_lote }}</td><td>{{ item.modo_calculo }}</td><td>{{ item.estado }}</td>
+                    <td>{{ item.fecha_calculo.strftime('%d/%m/%Y %H:%M') if item.fecha_calculo else '-' }}</td>
+                </tr>
+                {% else %}<tr><td colspan="12">No hay valorizaciones registradas.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</main>
+{% endblock %}

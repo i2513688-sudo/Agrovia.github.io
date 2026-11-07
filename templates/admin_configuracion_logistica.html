@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Configuración logística{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Configuración logística</h1>
+    <section class="card"><h2>Parámetros</h2>
+        {% for item in parametros %}
+        <form method="post" class="inline-form"><input type="hidden" name="action" value="actualizar_parametro"><input type="hidden" name="id_parametro" value="{{ item.id_parametro }}"><label>{{ item.nombre }} <input type="number" step="0.0001" min="0" name="valor" value="{{ item.valor }}" required></label><button class="btn" type="submit">Guardar</button></form>
+        {% else %}<p>No hay parámetros logísticos.</p>{% endfor %}
+    </section>
+    <section class="card"><h2>Tipos de vehículo</h2>
+        <div class="table-container"><table class="table"><thead><tr><th>Tipo</th><th>Capacidad kg</th><th>Rendimiento km/galón</th><th>Costo/km</th><th>Costo fijo</th><th>Calidad</th><th>Estado</th><th></th></tr></thead><tbody>
+        {% for item in tipos %}<tr><td>{{ item.nombre }}</td><td colspan="5">
+            <form method="post" class="inline-form"><input type="hidden" name="action" value="actualizar_tipo_vehiculo"><input type="hidden" name="id_tipo_vehiculo" value="{{ item.id_tipo_vehiculo }}">
+                <label>Capacidad<input type="number" name="capacidad_util_kg" min="0.01" step="0.01" value="{{ item.capacidad_util_kg }}" required></label>
+                <label>Rendimiento<input type="number" name="rendimiento_km_galon" min="0.01" step="0.01" value="{{ item.rendimiento_km_galon }}" required></label>
+                <label>Costo/km<input type="number" name="costo_operativo_km" min="0" step="0.01" value="{{ item.costo_operativo_km }}" required></label>
+                <label>Costo fijo<input type="number" name="costo_fijo_viaje" min="0" step="0.01" value="{{ item.costo_fijo_viaje }}" required></label>
+                <label>Calidad<select name="calidad_dato">{% for value in ['LEGAL_REFERENCIAL','REFERENCIAL','ESTIMADO_MVP'] %}<option value="{{ value }}" {{ 'selected' if item.calidad_dato == value else '' }}>{{ value }}</option>{% endfor %}</select></label><button class="btn" type="submit">Guardar</button>
+            </form></td><td>{{ item.estado }}</td><td><form method="post"><input type="hidden" name="action" value="cambiar_estado"><input type="hidden" name="tipo" value="tipo"><input type="hidden" name="id_registro" value="{{ item.id_tipo_vehiculo }}"><button class="btn" type="submit">{{ 'Desactivar' if item.estado == 'ACTIVO' else 'Activar' }}</button></form></td></tr>
+        {% else %}<tr><td colspan="8">No hay tipos de vehículo.</td></tr>{% endfor %}</tbody></table></div>
+        <h3>Referencias de vehículos</h3><div class="table-container"><table class="table"><tbody>{% for item in tipos_referencia %}<tr>{% for key, value in item.items() %}<td><strong>{{ key|replace('_',' ')|title }}:</strong> {{ value }}</td>{% endfor %}</tr>{% else %}<tr><td>Sin referencias disponibles.</td></tr>{% endfor %}</tbody></table></div>
+    </section>
+    <section class="card"><h2>Precios de combustible</h2>
+        <form method="post" class="form"><input type="hidden" name="action" value="registrar_combustible">
+            <label>Combustible<input name="combustible" maxlength="80" required></label><label>Precio por galón<input type="number" name="precio_galon" min="0.0001" step="0.0001" required></label><label>Fecha<input type="date" name="fecha_precio" required></label><label>Fuente<input name="fuente" maxlength="255" required></label>
+            <label>Calidad<select name="calidad_dato"><option>OFICIAL</option><option>REFERENCIAL</option><option>ESTIMADO_MVP</option></select></label>
+            <label>Departamento<input name="departamento"></label><label>Provincia<input name="provincia"></label><label>Distrito<input name="distrito"></label><button class="btn" type="submit">Registrar precio</button>
+        </form>
+        <div class="table-container"><table class="table"><thead><tr><th>Combustible</th><th>Zona</th><th>Precio/galón</th><th>Fecha</th><th>Fuente</th><th>Calidad</th><th>Estado</th><th></th></tr></thead><tbody>
+        {% for item in combustibles %}<tr><td>{{ item.combustible }}</td><td>{{ item.departamento or '-' }} {{ item.provincia or '' }} {{ item.distrito or '' }}</td><td>{{ item.precio_galon }}</td><td>{{ item.fecha_precio }}</td><td>{{ item.fuente }}</td><td>{{ item.calidad_dato }}</td><td>{{ item.estado }}</td><td><form method="post"><input type="hidden" name="action" value="cambiar_estado"><input type="hidden" name="tipo" value="combustible"><input type="hidden" name="id_registro" value="{{ item.id_precio_combustible }}"><button class="btn" type="submit">{{ 'Desactivar' if item.estado == 'ACTIVO' else 'Activar' }}</button></form></td></tr>
+        {% else %}<tr><td colspan="8">No hay precios de combustible registrados.</td></tr>{% endfor %}</tbody></table></div>
+        <h3>Precios vigentes</h3>{% for item in combustibles_actuales %}<p>{{ item.combustible }} · {{ item.departamento or '-' }} / {{ item.provincia or '-' }} / {{ item.distrito or '-' }}: {{ item.precio_galon }} ({{ item.calidad_dato }})</p>{% else %}<p>No hay precios vigentes.</p>{% endfor %}
+    </section>
+</main>
+{% endblock %}

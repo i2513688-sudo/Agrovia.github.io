@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Administrar capacitaciones{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Capacitaciones</h1>
+    <section class="card"><h2>Capacitaciones registradas</h2><div class="table-container"><table class="table"><thead><tr><th>Código</th><th>Título</th><th>Fecha</th><th>Hora</th><th>Lugar</th><th>Inscritos</th><th>Capacidad</th><th>Estado</th><th></th></tr></thead><tbody>
+        {% for item in capacitaciones %}<tr><td>{{ item.codigo_capacitacion }}</td><td>{{ item.titulo }}</td><td>{{ item.fecha }}</td><td>{{ item.hora }}</td><td>{{ item.lugar }}</td><td>{{ item.inscritos }}</td><td>{{ item.capacidad }}</td><td>{{ item.estado }}</td><td><a class="btn" href="{{ url_for('admin_capacitacion_asistentes', id_capacitacion=item.id_capacitacion) }}">Ver asistentes</a></td></tr>
+        {% else %}<tr><td colspan="9">No hay capacitaciones registradas.</td></tr>{% endfor %}
+    </tbody></table></div></section>
+</main>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Administrar pagos{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Pagos de operaciones</h1>
+    <div class="table-container"><table class="table"><thead><tr><th>Operación</th><th>Producto</th><th>Productor</th><th>Comprador</th><th>Total</th><th>Pago</th><th>Comprobante</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
+        {% for item in pagos %}<tr>
+            <td>{{ item.codigo_operacion }}</td><td>{{ item.producto }}</td><td>{{ item.productor }}</td><td>{{ item.comprador }}</td><td>S/ {{ item.total_operacion }}</td>
+            <td>{{ item.codigo_pago or 'Sin pago' }}{% if item.monto_pago is not none %}<br>S/ {{ item.monto_pago }} · {{ item.metodo or '-' }}{% endif %}<br>{{ item.fecha_pago or '' }}</td>
+            <td>{{ item.tipo_comprobante or '-' }}{% if item.numero_documento %}<br>{{ item.tipo_documento }} {{ item.numero_documento }}<br>{{ item.nombre_razon_social }}{% endif %}</td>
+            <td>{{ item.estado_pago or item.estado_operacion }}</td><td>
+                {% if item.estado_pago == 'PENDIENTE' or not item.id_pago %}<form method="post" action="{{ url_for('confirmar_pago', id_operacion=item.id_operacion) }}"><button class="btn" type="submit">Confirmar pago</button></form>{% else %}-{% endif %}
+            </td></tr>
+        {% else %}<tr><td colspan="9">No hay operaciones para mostrar.</td></tr>{% endfor %}
+    </tbody></table></div>
+</main>
+{% endblock %}

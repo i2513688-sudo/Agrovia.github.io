@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Variedades de productos{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Variedades de productos</h1>
+    <section class="card">
+        <h2>Registrar variedad</h2>
+        <form method="post" class="form">
+            <label for="id_producto">Producto</label>
+            <select id="id_producto" name="id_producto" required>
+                <option value="">Selecciona un producto</option>
+                {% for item in productos %}<option value="{{ item.id_producto }}">{{ item.nombre }}</option>{% endfor %}
+            </select>
+            <label for="nombre">Nombre</label><input id="nombre" name="nombre" maxlength="120" required>
+            <label for="descripcion">Descripción</label><textarea id="descripcion" name="descripcion" maxlength="255"></textarea>
+            <button type="submit" class="btn">Registrar variedad</button>
+        </form>
+    </section>
+    <section class="card">
+        <h2>Variedades registradas</h2>
+        <div class="table-container"><table class="table">
+            <thead><tr><th>Producto</th><th>Variedad</th><th>Descripción</th><th>Estado</th><th>Acción</th></tr></thead>
+            <tbody>{% for item in variedades %}
+                <tr><td>{{ item.producto }}</td><td>{{ item.nombre }}</td><td>{{ item.descripcion or '-' }}</td><td>{{ item.estado }}</td><td>
+                    <form method="post"><input type="hidden" name="action" value="cambiar_estado"><input type="hidden" name="id_variedad" value="{{ item.id_variedad }}"><button class="btn" type="submit">{{ 'Desactivar' if item.estado == 'ACTIVO' else 'Activar' }}</button></form>
+                </td></tr>
+            {% else %}<tr><td colspan="5">No hay variedades registradas.</td></tr>{% endfor %}</tbody>
+        </table></div>
+    </section>
+</main>
+{% endblock %}

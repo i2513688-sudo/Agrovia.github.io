@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Programación de cosechas{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Programación de cosechas</h1>
+    <section class="card"><h2>Operaciones y cosechas</h2>
+        {% for item in cosechas %}
+        <article class="card"><h3>{{ item.codigo_operacion }} · {{ item.producto }}</h3>
+            <p>Productor: {{ item.productor }} · Comprador: {{ item.comprador }} · Estado: {{ item.estado_operacion }}</p>
+            {% if item.id_cosecha %}
+            <p>Cosecha {{ item.codigo_cosecha }} · {{ item.fecha_programada }} · {{ item.estado_cosecha }} · Trabajadores: {{ item.trabajadores_requeridos_estimados }} · Cuadrilla: {{ item.cuadrilla or 'Sin asignar' }}</p>
+            {% else %}
+            <form method="post" action="{{ url_for('programar_cosecha', id_operacion=item.id_operacion) }}" class="form">
+                <label>Fecha programada<input type="date" name="fecha_programada" required></label>
+                <label>Trabajadores requeridos<input type="number" name="trabajadores_requeridos_estimados" min="1" value="{{ item.referencia_cosecha.trabajadores_para_1_dia if item.referencia_cosecha else '' }}" required></label>
+                <label>Cuadrilla<select name="id_cuadrilla"><option value="">Sin asignar</option>{% for cuadrilla in cuadrillas %}<option value="{{ cuadrilla.id_cuadrilla }}">{{ cuadrilla.nombre }}</option>{% endfor %}</select></label>
+                <label>Jornal acordado<input type="number" name="jornal_acordado" min="0" step="0.01" value="{{ item.referencia_cosecha.jornal_diario if item.referencia_cosecha else 80 }}"></label>
+                <label>Observaciones<textarea name="observaciones">Cosecha programada por administración.</textarea></label>
+                <button class="btn" type="submit">Programar cosecha</button>
+            </form>
+            {% endif %}
+            {% if item.referencia_cosecha %}<p>Referencia para {{ item.producto }}: {{ item.referencia_cosecha.calidad_dato }} · {{ item.referencia_cosecha.fuente or 'Sin fuente' }} · duración objetivo: {{ item.referencia_cosecha.duracion_objetivo_dias or '-' }} días.</p>{% endif %}
+        </article>
+        {% else %}<p>No hay operaciones pendientes de programación de cosecha.</p>{% endfor %}
+    </section>
+    <section class="card"><h2>Referencias de cosecha</h2><div class="table-container"><table class="table"><thead><tr><th>Producto</th><th>Calidad</th><th>Jornales/ha</th><th>Trabajadores para 1 día</th><th>Jornal diario</th><th>Costo base</th><th>Duración</th><th>Fuente</th></tr></thead><tbody>{% for item in referencias_cosecha %}<tr><td>{{ item.producto }}</td><td>{{ item.calidad_dato }}</td><td>{{ item.jornales_referenciales_ha }}</td><td>{{ item.trabajadores_para_1_dia }}</td><td>{{ item.jornal_diario }}</td><td>{{ item.costo_base_sin_volumen }}</td><td>{{ item.duracion_objetivo_dias or '-' }}</td><td>{{ item.fuente or item.url_fuente or '-' }}</td></tr>{% else %}<tr><td colspan="8">No hay referencias disponibles.</td></tr>{% endfor %}</tbody></table></div></section>
+</main>
+{% endblock %}

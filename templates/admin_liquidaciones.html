@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Liquidaciones y órdenes de pago{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Liquidaciones y órdenes de pago</h1>
+    <div class="table-container"><table class="table"><thead><tr><th>Operación</th><th>Producto</th><th>Productor</th><th>Comprador</th><th>Monto</th><th>Liquidación</th><th>Orden de pago</th><th>Beneficiario logístico</th><th>Acciones</th></tr></thead><tbody>
+        {% for item in liquidaciones %}<tr>
+            <td>{{ item.codigo_operacion }}<br>{{ item.estado_operacion }}</td><td>{{ item.producto }}</td><td>{{ item.productor }}</td><td>{{ item.comprador }}</td><td>S/ {{ item.total_operacion }}</td>
+            <td>{{ item.codigo_liquidacion or 'Sin liquidación' }}<br>{{ item.estado_liquidacion or '' }}{% if item.fecha_programada %}<br>{{ item.fecha_programada }}{% endif %}</td>
+            <td>{{ item.codigo_orden_pago or 'Sin orden' }}<br>{{ item.estado_orden_pago or '' }}{% if item.metodo_pago %}<br>{{ item.metodo_pago }}{% endif %}</td>
+            <td>{{ item.cuadrilla or item.transportista or 'Productor' }}</td><td>
+                {% if not item.id_liquidacion %}<form method="post" action="{{ url_for('generar_liquidacion', id_operacion=item.id_operacion) }}"><label>Método<select name="metodo_pago"><option>TRANSFERENCIA_BANCARIA</option><option>BILLETERA_DIGITAL</option><option>EFECTIVO_PRESENCIAL</option></select></label><button class="btn" type="submit">Generar liquidación</button></form>
+                {% elif item.estado_orden_pago == 'GENERADA' %}<form method="post" action="{{ url_for('autorizar_orden_pago', id_orden_pago=item.id_orden_pago) }}"><button class="btn" type="submit">Autorizar orden</button></form>
+                {% elif item.estado_orden_pago == 'AUTORIZADA' %}<form method="post" action="{{ url_for('ejecutar_orden_pago', id_orden_pago=item.id_orden_pago) }}"><button class="btn" type="submit">Registrar ejecución</button></form>
+                {% else %}-{% endif %}
+            </td></tr>
+        {% else %}<tr><td colspan="9">No hay operaciones entregadas o completadas.</td></tr>{% endfor %}
+    </tbody></table></div>
+</main>
+{% endblock %}

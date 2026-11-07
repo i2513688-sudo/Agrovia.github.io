@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Campañas agrícolas{% endblock %}
+{% block content %}
+<main class="container">
+    <h1>Campañas agrícolas</h1>
+    <section class="card"><h2>Crear campaña</h2>
+        <form method="post" class="form"><label>Nombre<input name="nombre" maxlength="100" required></label><label>Fecha de inicio<input type="date" name="fecha_inicio" required></label><label>Fecha de fin<input type="date" name="fecha_fin" required></label><label>Estado<select name="estado"><option>PLANIFICADA</option><option>ACTIVA</option><option>CERRADA</option><option>INACTIVA</option></select></label><button class="btn" type="submit">Crear campaña</button></form>
+    </section>
+    <section class="card"><h2>Campañas</h2>{% for item in campanas %}
+        <form method="post" class="inline-form"><input type="hidden" name="id_campana" value="{{ item.id_campana }}"><label>Nombre<input name="nombre" maxlength="100" value="{{ item.nombre }}" required></label><label>Inicio<input type="date" name="fecha_inicio" value="{{ item.fecha_inicio.isoformat() if item.fecha_inicio else '' }}" required></label><label>Fin<input type="date" name="fecha_fin" value="{{ item.fecha_fin.isoformat() if item.fecha_fin else '' }}" required></label><label>Estado<select name="estado">{% for estado in ['PLANIFICADA','ACTIVA','CERRADA','INACTIVA'] %}<option value="{{ estado }}" {{ 'selected' if item.estado == estado else '' }}>{{ estado }}</option>{% endfor %}</select></label><button class="btn" type="submit">Guardar</button></form>
+    {% else %}<p>No hay campañas registradas.</p>{% endfor %}</section>
+</main>
+{% endblock %}
