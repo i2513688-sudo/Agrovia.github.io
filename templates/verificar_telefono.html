@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Verificar teléfono') }}{% endblock %}
+
+{% block content %}
+<main class="container">
+    <section class="form">
+        <h1>{{ _('Verificar teléfono') }}</h1>
+        <p class="muted">{{ _('Ingresa el código numérico que recibiste por SMS para activar tu cuenta.') }}</p>
+        <form method="post">
+            <label for="codigo">{{ _('Código SMS') }}</label>
+            <input id="codigo" name="codigo" type="text" inputmode="numeric" pattern="[0-9]{4,10}" autocomplete="one-time-code" required>
+            {% if turnstile_site_key() %}
+            <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key() }}"></div>
+            {% endif %}
+            <button type="submit" class="btn">{{ _('Verificar código') }}</button>
+        </form>
+        <form method="post" action="{{ url_for('reenviar_codigo_sms') }}">
+            {% if turnstile_site_key() %}
+            <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key() }}"></div>
+            {% endif %}
+            <button type="submit" class="btn">{{ _('Reenviar código SMS') }}</button>
+        </form>
+    </section>
+</main>
+{% if turnstile_site_key() %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
+{% endblock %}

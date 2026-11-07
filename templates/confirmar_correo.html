@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Confirmar correo') }}{% endblock %}
+
+{% block content %}
+<main class="container">
+    <section class="form">
+        <h1>{{ _('Confirmar correo') }}</h1>
+        <p class="muted">
+            {{ _('Confirma que deseas verificar la dirección de correo de tu cuenta. Después enviaremos un código SMS para completar la activación.') }}
+        </p>
+        <form method="post" action="{{ url_for('verificar_correo', token=token) }}">
+            {% if turnstile_site_key() %}
+            <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key() }}"></div>
+            {% endif %}
+            <button type="submit" class="btn">{{ _('Confirmar correo') }}</button>
+        </form>
+        <p><a href="{{ url_for('reenviar_verificacion') }}">{{ _('Solicitar otro enlace') }}</a></p>
+        <p><a href="{{ url_for('login') }}">{{ _('Volver al inicio de sesión') }}</a></p>
+    </section>
+</main>
+{% if turnstile_site_key() %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
+{% endblock %}
